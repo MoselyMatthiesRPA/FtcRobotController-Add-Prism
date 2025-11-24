@@ -22,14 +22,13 @@
 
 package org.firstinspires.ftc.teamcode.Prism;
 
-import static org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.LayerHeight;
-
-import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
-import com.qualcomm.robotcore.util.TypeConversion;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.TimeUnit;
+
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
+import com.qualcomm.robotcore.util.TypeConversion;
+import static org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.LayerHeight;
 
 public class PrismAnimations {
     public enum AnimationType{
@@ -683,7 +682,7 @@ public class PrismAnimations {
     public static class Random extends AnimationBase {
         private float startHue = 0f;
         private float stopHue  = 360f;
-        private float speed    = 0.25f;
+        private float speed    = 0.1f;
 
         //region Constructors
         public Random(){ super(AnimationType.Random); }
@@ -824,7 +823,7 @@ public class PrismAnimations {
     public static class SingleFill extends AnimationBase {
         private Color[] colors        = {Color.WHITE, Color.GREEN, Color.BLUE};
         private int period            = 750;
-        private int speed             = 90;
+        private float speed           = 0.5f;
         private int pixelLength       = 3;
         private Direction direction   = Direction.Backward;
         private SingleFillStyle style = SingleFillStyle.FillIn;
@@ -844,7 +843,7 @@ public class PrismAnimations {
         }
 
         public int getPeriod() { return period; }
-        public int getSpeed()  { return speed; }
+        public float getSpeed()  { return speed; }
         public Color[] getColors() { return colors; }
         public int getPixelLength() { return pixelLength; }
         public Direction getDirection() { return direction; }
@@ -869,7 +868,7 @@ public class PrismAnimations {
          * Sets the speed of the animation
          * @param speed from 0 to 1.
          */
-        public void setSpeed(int speed)        { this.speed = speed;   }
+        public void setSpeed(float speed)        { this.speed = speed;   }
         public void setColors(Color... colors) {
             for(int i = 0; i < Math.min(colors.length,10); i++){
                 this.colors[i] = colors[i];

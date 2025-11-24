@@ -98,8 +98,8 @@ public class GoBildaPrismExample extends LinearOpMode {
         rainbowSnakes.setSpeed(0.5f);
 
         telemetry.addData("Device ID: ", prism.getDeviceID());
-        telemetry.addData("Firmware Version: ", prism.getFirmwareVersion());
-        telemetry.addData("Hardware Version: ", prism.getHardwareVersion());
+        telemetry.addData("Firmware Version: ", prism.getFirmwareVersionString());
+        telemetry.addData("Hardware Version: ", prism.getHardwareVersionString());
         telemetry.addData("Power Cycle Count: ", prism.getPowerCycleCount());
         telemetry.update();
 

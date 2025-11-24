@@ -31,6 +31,7 @@ import com.qualcomm.robotcore.hardware.I2cDeviceSynchDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
 import com.qualcomm.robotcore.hardware.configuration.annotations.DeviceProperties;
 import com.qualcomm.robotcore.hardware.configuration.annotations.I2cDeviceType;
+
 import com.qualcomm.robotcore.util.TypeConversion;
 
 import java.nio.ByteOrder;
@@ -203,29 +204,46 @@ public class GoBildaPrismDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSimpl
     }
 
     /**
-     * @return Firmware Version of device.
+     * @return Firmware Version of device. Array[0] is the major version, Array[1] is the minor version
+     * Array[2] is the patch version.
      */
-    public int getFirmwareVersion(){
+    public int[] getFirmwareVersion(){
         byte[] packet = deviceClient.read(Register.FIRMWARE_VERSION.address,Register.FIRMWARE_VERSION.registerType.lengthBytes);
-        byte[] outputPacket = new byte[4];
-        outputPacket[0] = packet[2];
-        outputPacket[1] = packet[1];
-        outputPacket[2] = packet[0];
-        outputPacket[3] = 0;
-        return byteArrayToInt(outputPacket,ByteOrder.LITTLE_ENDIAN);
+        int[] output = new int[3];
+        output[0] = packet[2];
+        output[1] = packet[1];
+        output[2] = packet[0];
+        return output;
     }
 
     /**
-     * @return Hardware version of device.
+     * @return Hardware version of the device as a string.
      */
-    public int getHardwareVersion(){
+    public String getFirmwareVersionString(){
+        byte[] packet = deviceClient.read(Register.FIRMWARE_VERSION.address,Register.FIRMWARE_VERSION.registerType.lengthBytes);
+        int[] output = new int[3];
+        output[0] = packet[2];
+        output[1] = packet[1];
+        output[2] = packet[0];
+        return String.format("Firmware Version: %d, %d, %d", output[0],output[1],output[2]);
+    }
+
+    /**
+     * @return Hardware version of device. Array[0] is the major version, Array[1] is the minor version.
+     */
+    public int[] getHardwareVersion(){
         byte[] packet = deviceClient.read(Register.HARDWARE_VERSION.address,Register.HARDWARE_VERSION.registerType.lengthBytes);
-        byte[] outputPacket = new byte[4];
-        outputPacket[0] = packet[1];
-        outputPacket[1] = packet[0];
-        outputPacket[2] = 0;
-        outputPacket[3] = 0;
-        return byteArrayToInt(outputPacket,ByteOrder.LITTLE_ENDIAN);
+        int[] output = new int[2];
+        output[0] = packet[1];
+        output[1] = packet[0];
+        return output;
+    }
+    public String getHardwareVersionString(){
+        byte[] packet = deviceClient.read(Register.HARDWARE_VERSION.address,Register.HARDWARE_VERSION.registerType.lengthBytes);
+        int[] output = new int[2];
+        output[0] = packet[1];
+        output[1] = packet[0];
+        return String.format("Hardware Version: %d, %d", output[0],output[1]);
     }
 
     /**

@@ -29,10 +29,10 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.Prism.Color;
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
-import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.Artboard;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations.AnimationType;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations.PoliceLights;
+import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.Artboard;
 
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +40,8 @@ import java.util.concurrent.TimeUnit;
  * This code creates a "Configurator" UI which exposes a somewhat limited amount of the functionality
  * available to create animations and artboards to users without needing to work with very much code.
  *
- * This file is not meant to serve as example code - unless you're trying to do something similar.
+ * This file is not meant to serve as example code - unless you're trying to create a telemetry-based
+ * UI for the drivers station.
  * For example code that your team can leverage in your autonomous/teleop code to recall artboards
  * check out the GoBildaPrismArtboardExample. Run this code on your robot and use it to create
  * the artboards you'd like to be able to switch between. This means that switching between animations
@@ -70,6 +71,8 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
     int startPoint = 0; // the start LED for any configured animation
     int endPoint = 12; // the end LED for a configured animation
     int brightness = 50; // the brightness of configured animation
+    int period = 1000; // the period of a configured animation
+    float speed = 0.5F; // the speed of a configured animation
 
     int layerSelector = 0; // an integer used to create a cursor to select a layer
     int animationSelector = 1; // animation cursor
@@ -98,6 +101,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         SELECT_ANIMATION,
         CONFIGURE_ANIMATION,
         SET_BRIGHTNESS,
+        SET_SPEED,
         FORK_IN_THE_ROAD,
         SAVE_TO_ARTBOARD,
         COMPLETE;
@@ -134,6 +138,16 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         }
     }
 
+    /*
+     * This enum captures the kind of speed we can control on the animation.
+     */
+    public enum SpeedType{
+        NO_SPEED,
+        PERIOD_ONLY,
+        SPEED_ONLY,
+        PERIOD_AND_SPEED,
+    }
+
     Layers selectedLayer = Layers.LAYER_0;
 
     Artboard selectedArtboard = Artboard.ARTBOARD_0;
@@ -164,12 +178,12 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
                 "and click the 'Play' button to continue");
         telemetry.addLine("");
 
-        telemetry.addData("Device ID: ", prism.getDeviceID());
-        telemetry.addData("Firmware Version: ", prism.getFirmwareVersion());
-        telemetry.addData("Hardware Version: ", prism.getHardwareVersion());
-        telemetry.addData("Power Cycle Count: ", prism.getPowerCycleCount());
-        telemetry.addData("Run Time (Minutes): ",prism.getRunTime(TimeUnit.MINUTES));
-        telemetry.addData("Run Time (Hours): ",prism.getRunTime(TimeUnit.HOURS));
+        telemetry.addData("Device ID", prism.getDeviceID());
+        telemetry.addLine(prism.getFirmwareVersionString());
+        telemetry.addLine(prism.getHardwareVersionString());
+        telemetry.addData("Power Cycle Count", prism.getPowerCycleCount());
+        telemetry.addData("Run Time (Minutes)",prism.getRunTime(TimeUnit.MINUTES));
+        telemetry.addData("Run Time (Hours)",prism.getRunTime(TimeUnit.HOURS));
         telemetry.update();
 
         // Wait for the game to start (driver presses START)
@@ -255,10 +269,21 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
                 case SET_BRIGHTNESS:
                     configureBrightness();
                     if(gamepad1.aWasPressed()){
-                        configState = ConfigState.FORK_IN_THE_ROAD;
+                        configState = ConfigState.SET_SPEED;
                     }
                     if(gamepad1.bWasPressed()){
                         configState =  ConfigState.CONFIGURE_ANIMATION;
+                    }
+                    break;
+                case SET_SPEED:
+                    if(configureSpeed()){
+                        configState = ConfigState.FORK_IN_THE_ROAD;
+                    }
+                    if(gamepad1.aWasPressed()){
+                        configState = ConfigState.FORK_IN_THE_ROAD;
+                    }
+                    if(gamepad1.bWasPressed()){
+                        configState = ConfigState.SET_BRIGHTNESS;
                     }
                     break;
                 case FORK_IN_THE_ROAD:
@@ -269,7 +294,9 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
                         selectArtboard(artboardSelector);
                     }
                     if(gamepad1.bWasPressed()){
-                        configState =  ConfigState.SET_BRIGHTNESS;
+                        if(configureSpeed()){
+                            configState = ConfigState.SET_BRIGHTNESS;
+                        } else configState = ConfigState.SET_SPEED;
                     }
                     if(gamepad1.yWasPressed()){
                         configState = ConfigState.SELECT_LAYER;
@@ -341,16 +368,16 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         telemetry.addLine("Select the Layer that you wish to save an Animation to.");
         telemetry.addLine("Use D-Pad up and D-Pad down to navigate through the layers.");
         telemetry.addLine("");
-        telemetry.addData("LAYER_0 Animation:", Layers.LAYER_0.animationType+layerCursor(Layers.LAYER_0,selector));
-        telemetry.addData("LAYER_1 Animation:", Layers.LAYER_1.animationType+layerCursor(Layers.LAYER_1,selector));
-        telemetry.addData("LAYER_2 Animation:", Layers.LAYER_2.animationType+layerCursor(Layers.LAYER_2,selector));
-        telemetry.addData("LAYER_3 Animation:", Layers.LAYER_3.animationType+layerCursor(Layers.LAYER_3,selector));
-        telemetry.addData("LAYER_4 Animation:", Layers.LAYER_4.animationType+layerCursor(Layers.LAYER_4,selector));
-        telemetry.addData("LAYER_5 Animation:", Layers.LAYER_5.animationType+layerCursor(Layers.LAYER_5,selector));
-        telemetry.addData("LAYER_6 Animation:", Layers.LAYER_6.animationType+layerCursor(Layers.LAYER_6,selector));
-        telemetry.addData("LAYER_7 Animation:", Layers.LAYER_7.animationType+layerCursor(Layers.LAYER_7,selector));
-        telemetry.addData("LAYER_8 Animation:", Layers.LAYER_8.animationType+layerCursor(Layers.LAYER_8,selector));
-        telemetry.addData("LAYER_9 Animation:", Layers.LAYER_9.animationType+layerCursor(Layers.LAYER_9,selector));
+        telemetry.addData("LAYER_0 Animation", Layers.LAYER_0.animationType+layerCursor(Layers.LAYER_0,selector));
+        telemetry.addData("LAYER_1 Animation", Layers.LAYER_1.animationType+layerCursor(Layers.LAYER_1,selector));
+        telemetry.addData("LAYER_2 Animation", Layers.LAYER_2.animationType+layerCursor(Layers.LAYER_2,selector));
+        telemetry.addData("LAYER_3 Animation", Layers.LAYER_3.animationType+layerCursor(Layers.LAYER_3,selector));
+        telemetry.addData("LAYER_4 Animation", Layers.LAYER_4.animationType+layerCursor(Layers.LAYER_4,selector));
+        telemetry.addData("LAYER_5 Animation", Layers.LAYER_5.animationType+layerCursor(Layers.LAYER_5,selector));
+        telemetry.addData("LAYER_6 Animation", Layers.LAYER_6.animationType+layerCursor(Layers.LAYER_6,selector));
+        telemetry.addData("LAYER_7 Animation", Layers.LAYER_7.animationType+layerCursor(Layers.LAYER_7,selector));
+        telemetry.addData("LAYER_8 Animation", Layers.LAYER_8.animationType+layerCursor(Layers.LAYER_8,selector));
+        telemetry.addData("LAYER_9 Animation", Layers.LAYER_9.animationType+layerCursor(Layers.LAYER_9,selector));
         telemetry.addLine("");
         telemetry.addLine("Press A to continue");
     }
@@ -418,8 +445,8 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         telemetry.addLine("Use the d-pad to set the start point, d-pad right moves it further from the Prism. " +
                 "d-pad left moves it closer.");
         telemetry.addLine("Bumpers move the endpoint, The left bumper moves it closer to the Prism, right moves it further.");
-        telemetry.addData("Start Point: ", startPoint);
-        telemetry.addData("End Point: ", endPoint);
+        telemetry.addData("Start Point", startPoint);
+        telemetry.addData("End Point", endPoint);
         telemetry.addLine("");
         telemetry.addLine("Press A to Continue");
         telemetry.addLine("Press B to go back");
@@ -441,10 +468,120 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         telemetry.addLine("");
         telemetry.addLine("Use the d-pad to adjust the brightness, up increases, down decreases.");
         telemetry.addLine("");
-        telemetry.addData("Brightness: ", brightness);
+        telemetry.addData("Brightness", brightness);
         telemetry.addLine("");
         telemetry.addLine("Press A to Continue");
         telemetry.addLine("Press B to go back");
+    }
+
+    /**
+     * Returns: True if we should skip this animation type.
+     */
+    public boolean configureSpeed(){
+        switch (speedFromAnimation(selectedAnimation)){
+            case NO_SPEED: return true;
+            case SPEED_ONLY:
+                if(gamepad1.dpadUpWasPressed()){
+                    speed += 0.1f;
+                    speed = Math.min(1.0f, Math.max(0,speed));
+                    configureAnimation(false,false);
+                }
+                if(gamepad1.dpadDownWasPressed()){
+                    speed -= 0.1f;
+                    speed = Math.min(1.0f, Math.max(0,speed));
+                    configureAnimation(false,false);
+                }
+                telemetry.addLine("Set the speed for this animation from 0 to 1");
+                telemetry.addLine("");
+                telemetry.addLine("Use the d-pad to adjust the speed, up increases, down decreases.");
+                telemetry.addLine("");
+                telemetry.addData("Speed", speed);
+                telemetry.addLine("");
+                telemetry.addLine("Press A to Continue");
+                telemetry.addLine("Press B to go back");
+            break;
+            case PERIOD_ONLY:
+                if(gamepad1.dpadUpWasPressed()){
+                    if(period < 401){
+                        period += 100;
+                    } else period += 500;
+                    period = Math.min(300000, Math.max(0,period));
+                    configureAnimation(false,false);
+                }
+                if(gamepad1.dpadDownWasPressed()){
+                    if(period < 501){
+                        period -= 100;
+                    } else period -= 500;
+                    period = Math.min(300000, Math.max(0,period));
+                    configureAnimation(false,false);
+                }
+                telemetry.addLine("Set the period for this animation in Milliseconds");
+                telemetry.addLine("");
+                telemetry.addLine("Use the d-pad to adjust the period, up increases, down decreases.");
+                telemetry.addLine("");
+                telemetry.addData("Period", period);
+                telemetry.addLine("");
+                telemetry.addLine("Press A to Continue");
+                telemetry.addLine("Press B to go back");
+            break;
+            case PERIOD_AND_SPEED:
+                if(gamepad1.dpadUpWasPressed()){
+                    if(period < 401){
+                        period += 100;
+                    } else period += 500;
+                    period = Math.min(300000, Math.max(0,period));
+                    configureAnimation(false,false);
+                }
+                if(gamepad1.dpadDownWasPressed()){
+                    if(period < 501){
+                        period -= 100;
+                    } else period -= 500;
+                    period = Math.min(300000, Math.max(0,period));
+                    configureAnimation(false,false);
+                }
+                if(gamepad1.dpadRightWasPressed()){
+                    speed += 0.1f;
+                    speed = Math.min(1.0f, Math.max(0,speed));
+                    configureAnimation(false,false);
+                }
+                if(gamepad1.dpadLeftWasPressed()){
+                    speed -= 0.1f;
+                    speed = Math.min(1.0f, Math.max(0,speed));
+                    configureAnimation(false,false);
+                }
+                telemetry.addLine("Set the period for this animation in Milliseconds");
+                telemetry.addLine("");
+                telemetry.addLine("Set the speed for this animation from 0-1");
+                telemetry.addLine("");
+                telemetry.addLine("Use the d-pad to adjust the period, up increases, down decreases.");
+                telemetry.addLine("");
+                telemetry.addData("Period", period);
+                telemetry.addLine("");
+                telemetry.addLine("Use the d-pad to adjust the speed, right increases, left decreases.");
+                telemetry.addLine("");
+                telemetry.addData("Speed", speed);
+                telemetry.addLine("");
+                telemetry.addLine("Press A to Continue");
+                telemetry.addLine("Press B to go back");
+            break;
+        }
+        return false;
+    }
+
+    public SpeedType speedFromAnimation(AnimationType animationType){
+        if(animationType == AnimationType.Blink || animationType == AnimationType.Pulse ||
+                animationType == AnimationType.Sparkle || animationType == AnimationType.PoliceLights){
+            return SpeedType.PERIOD_ONLY;
+        }
+        if (animationType == AnimationType.CylonEye || animationType == AnimationType.Rainbow ||
+                animationType == AnimationType.Snakes || animationType == AnimationType.Random ||
+                animationType == AnimationType.RainbowSnakes){
+            return SpeedType.SPEED_ONLY;
+        }
+        if(animationType == AnimationType.SineWave || animationType == AnimationType.SingleFill){
+            return SpeedType.PERIOD_AND_SPEED;
+        }
+        else return SpeedType.NO_SPEED;
     }
 
     public void forkInTheRoad(){
@@ -575,6 +712,8 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         blink.setStartIndex(startPoint);
         blink.setStopIndex(endPoint);
         blink.setBrightness(brightness);
+        blink.setPeriod(period);
+        blink.setPrimaryColorPeriod(period/2);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, blink);
@@ -610,6 +749,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         pulse.setStartIndex(startPoint);
         pulse.setStopIndex(endPoint);
         pulse.setBrightness(brightness);
+        pulse.setPeriod(period);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, pulse);
@@ -645,6 +785,8 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         sineWave.setStartIndex(startPoint);
         sineWave.setStopIndex(endPoint);
         sineWave.setBrightness(brightness);
+        sineWave.setPeriod(period);
+        sineWave.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, sineWave);
@@ -680,6 +822,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         cylonEye.setStartIndex(startPoint);
         cylonEye.setStopIndex(endPoint);
         cylonEye.setBrightness(brightness);
+        cylonEye.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, cylonEye);
@@ -708,6 +851,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         rainbow.setStartIndex(startPoint);
         rainbow.setStopIndex(endPoint);
         rainbow.setBrightness(brightness);
+        rainbow.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, rainbow);
@@ -733,6 +877,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         snakes.setStartIndex(startPoint);
         snakes.setStopIndex(endPoint);
         snakes.setBrightness(brightness);
+        snakes.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, snakes);
@@ -758,6 +903,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         random.setStartIndex(startPoint);
         random.setStopIndex(endPoint);
         random.setBrightness(brightness);
+        random.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, random);
@@ -793,6 +939,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         sparkle.setStartIndex(startPoint);
         sparkle.setStopIndex(endPoint);
         sparkle.setBrightness(brightness);
+        sparkle.setPeriod(period);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, sparkle);
@@ -833,6 +980,8 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         singleFill.setStartIndex(startPoint);
         singleFill.setStopIndex(endPoint);
         singleFill.setBrightness(brightness);
+        singleFill.setSpeed(speed);
+        singleFill.setPeriod(period);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, singleFill);
@@ -862,6 +1011,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         rainbowSnakes.setStartIndex(startPoint);
         rainbowSnakes.setStopIndex(endPoint);
         rainbowSnakes.setBrightness(brightness);
+        rainbowSnakes.setSpeed(speed);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, rainbowSnakes);
@@ -919,6 +1069,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         policeLights.setStopIndex(endPoint);
         policeLights.setBrightness(brightness);
         policeLights.setPoliceLightsStyle(policeLightsStyle);
+        policeLights.setPeriod(period);
 
         if(isBeingInserted){
             prism.insertAndUpdateAnimation(selectedLayer.layerHeight, policeLights);
@@ -958,7 +1109,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
 
     /*
      * Reasonably, you might be wondering why I'm configuring the colors in HSB/HSL instead
-     * of RGB - The sane choice. And it's all to create a  more seamless user experience.
+     * of RGB - The sane choice. And it's all to create a more intuitive user experience.
      * Having the user create a color by combining sliders of red, green, and blue is very true
      * to the colorspace we are actually working in, but folks I tried this on found it very
      * difficult. Hue/Saturation/Brightness allows us to create one slider for each three intuitive
@@ -971,12 +1122,12 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         final float SATURATION_JOYSTICK_SCALAR = 0.05F;
         final float BRIGHTNESS_JOYSTICK_SCALAR = 0.05f;
 
-        float[] hsb = new float[3]; // Android graphics library wants an array containing RGB value.
+        float[] hsb = new float[3]; // Android graphics library wants an array containing RGB values.
         android.graphics.Color.RGBToHSV(previousColor.red,previousColor.green,previousColor.blue,hsb);
 
         /*
-          * Here we let the user increase or decrease H, S, or B with the joystick.
-          * Pushing the stick more moves the value more.
+         * Here we let the user increase or decrease H, S, or B with the joystick.
+         * Pushing the stick more moves the value more.
          */
         hsb[0] = Math.max(Math.min(hsb[0] +(gamepad1.left_stick_x*HUE_JOYSTICK_SCALAR), 360),0);
         hsb[1] = Math.max(Math.min(hsb[1] +(gamepad1.right_stick_x*SATURATION_JOYSTICK_SCALAR), 1),0);

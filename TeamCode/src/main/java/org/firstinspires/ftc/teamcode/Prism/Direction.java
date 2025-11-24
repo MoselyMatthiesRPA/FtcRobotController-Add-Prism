@@ -20,7 +20,6 @@
  *   SOFTWARE.
  */
 
-
 package org.firstinspires.ftc.teamcode.Prism;
 
 public enum Direction {

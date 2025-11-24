@@ -24,11 +24,10 @@ package org.firstinspires.ftc.teamcode;
 
 
 import static org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.Artboard;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
+
 
 import java.util.concurrent.TimeUnit;
 
@@ -62,8 +61,8 @@ public class GoBildaPrismArtboardExample extends LinearOpMode {
         prism = hardwareMap.get(GoBildaPrismDriver.class, "prism");
 
         telemetry.addData("Device ID: ", prism.getDeviceID());
-        telemetry.addData("Firmware Version: ", prism.getFirmwareVersion());
-        telemetry.addData("Hardware Version: ", prism.getHardwareVersion());
+        telemetry.addData("Firmware Version: ", prism.getFirmwareVersionString());
+        telemetry.addData("Hardware Version: ", prism.getHardwareVersionString());
         telemetry.addData("Power Cycle Count: ", prism.getPowerCycleCount());
         telemetry.addData("Run Time (Minutes): ", prism.getRunTime(TimeUnit.MINUTES));
         telemetry.update();
