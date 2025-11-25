@@ -225,7 +225,7 @@ public class GoBildaPrismDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSimpl
         output[0] = packet[2];
         output[1] = packet[1];
         output[2] = packet[0];
-        return String.format("Firmware Version: %d, %d, %d", output[0],output[1],output[2]);
+        return String.format("%d.%d.%d", output[0], output[1], output[2]);
     }
 
     /**
@@ -243,7 +243,7 @@ public class GoBildaPrismDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSimpl
         int[] output = new int[2];
         output[0] = packet[1];
         output[1] = packet[0];
-        return String.format("Hardware Version: %d, %d", output[0],output[1]);
+        return String.format("%d.%d", output[0], output[1]);
     }
 
     /**
