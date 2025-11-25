@@ -88,7 +88,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         Color.RED, Color.WHITE, Color.BLUE
     };
 
-    AnimationType selectedAnimation = AnimationType.Solid; // store the animation that is being selected.
+    AnimationType selectedAnimation = AnimationType.SOLID; // store the animation that is being selected.
 
     /*
      * the enum powering the main state machine that this code moves through, each state represents
@@ -116,16 +116,16 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
      * after they've created their first animation.
      */
     public enum Layers{
-        LAYER_0 (AnimationType.None,0,LayerHeight.LAYER_0),
-        LAYER_1 (AnimationType.None,1,LayerHeight.LAYER_1),
-        LAYER_2 (AnimationType.None,2,LayerHeight.LAYER_2),
-        LAYER_3 (AnimationType.None,3,LayerHeight.LAYER_3),
-        LAYER_4 (AnimationType.None,4,LayerHeight.LAYER_4),
-        LAYER_5 (AnimationType.None,5,LayerHeight.LAYER_5),
-        LAYER_6 (AnimationType.None,6,LayerHeight.LAYER_6),
-        LAYER_7 (AnimationType.None,7,LayerHeight.LAYER_7),
-        LAYER_8 (AnimationType.None,8,LayerHeight.LAYER_8),
-        LAYER_9 (AnimationType.None,9,LayerHeight.LAYER_9);
+        LAYER_0 (AnimationType.NONE,0,LayerHeight.LAYER_0),
+        LAYER_1 (AnimationType.NONE,1,LayerHeight.LAYER_1),
+        LAYER_2 (AnimationType.NONE,2,LayerHeight.LAYER_2),
+        LAYER_3 (AnimationType.NONE,3,LayerHeight.LAYER_3),
+        LAYER_4 (AnimationType.NONE,4,LayerHeight.LAYER_4),
+        LAYER_5 (AnimationType.NONE,5,LayerHeight.LAYER_5),
+        LAYER_6 (AnimationType.NONE,6,LayerHeight.LAYER_6),
+        LAYER_7 (AnimationType.NONE,7,LayerHeight.LAYER_7),
+        LAYER_8 (AnimationType.NONE,8,LayerHeight.LAYER_8),
+        LAYER_9 (AnimationType.NONE,9,LayerHeight.LAYER_9);
 
         private AnimationType animationType;
         private final int index;
@@ -160,7 +160,7 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
     PrismAnimations.Blink blink = new PrismAnimations.Blink();
     PrismAnimations.Pulse pulse = new PrismAnimations.Pulse();
     PrismAnimations.SineWave sineWave = new PrismAnimations.SineWave();
-    PrismAnimations.CylonEye cylonEye = new PrismAnimations.CylonEye();
+    PrismAnimations.DroidScan droidScan = new PrismAnimations.DroidScan();
     PrismAnimations.Rainbow rainbow = new PrismAnimations.Rainbow();
     PrismAnimations.Snakes snakes = new PrismAnimations.Snakes();
     PrismAnimations.Random random = new PrismAnimations.Random();
@@ -393,18 +393,18 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         telemetry.addLine("Select the Animation that you wish to use");
         telemetry.addLine("Use D-Pad up and D-Pad down to navigate through the Animations.");
         telemetry.addLine("");
-        telemetry.addData("Solid",animationCursor(AnimationType.Solid,animationSelector));
-        telemetry.addData("Blink",animationCursor(AnimationType.Blink,animationSelector));
-        telemetry.addData("Pulse",animationCursor(AnimationType.Pulse,animationSelector));
-        telemetry.addData("Sine Wave",animationCursor(AnimationType.SineWave,animationSelector));
-        telemetry.addData("Cylon Eye",animationCursor(AnimationType.CylonEye,animationSelector));
-        telemetry.addData("Rainbow",animationCursor(AnimationType.Rainbow,animationSelector));
-        telemetry.addData("Snakes",animationCursor(AnimationType.Snakes,animationSelector));
-        telemetry.addData("Random",animationCursor(AnimationType.Random,animationSelector));
-        telemetry.addData("Sparkle",animationCursor(AnimationType.Sparkle,animationSelector));
-        telemetry.addData("Single Fill",animationCursor(AnimationType.SingleFill,animationSelector));
-        telemetry.addData("Rainbow Snakes",animationCursor(AnimationType.RainbowSnakes,animationSelector));
-        telemetry.addData("Police Lights",animationCursor(AnimationType.PoliceLights,animationSelector));
+        telemetry.addData("Solid",animationCursor(AnimationType.SOLID,animationSelector));
+        telemetry.addData("Blink",animationCursor(AnimationType.BLINK,animationSelector));
+        telemetry.addData("Pulse",animationCursor(AnimationType.PULSE,animationSelector));
+        telemetry.addData("Sine Wave",animationCursor(AnimationType.SINE_WAVE,animationSelector));
+        telemetry.addData("Droid Scan",animationCursor(AnimationType.DROID_SCAN,animationSelector));
+        telemetry.addData("Rainbow",animationCursor(AnimationType.RAINBOW,animationSelector));
+        telemetry.addData("Snakes",animationCursor(AnimationType.SNAKES,animationSelector));
+        telemetry.addData("Random",animationCursor(AnimationType.RANDOM,animationSelector));
+        telemetry.addData("Sparkle",animationCursor(AnimationType.SPARKLE,animationSelector));
+        telemetry.addData("Single Fill",animationCursor(AnimationType.SINGLE_FILL,animationSelector));
+        telemetry.addData("Rainbow Snakes",animationCursor(AnimationType.RAINBOW_SNAKES,animationSelector));
+        telemetry.addData("Police Lights",animationCursor(AnimationType.POLICE_LIGHTS,animationSelector));
         telemetry.addLine("");
         telemetry.addLine("Press A to continue");
         telemetry.addLine("Press B to go back");
@@ -569,16 +569,16 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
     }
 
     public SpeedType speedFromAnimation(AnimationType animationType){
-        if(animationType == AnimationType.Blink || animationType == AnimationType.Pulse ||
-                animationType == AnimationType.Sparkle || animationType == AnimationType.PoliceLights){
+        if(animationType == AnimationType.BLINK || animationType == AnimationType.PULSE ||
+                animationType == AnimationType.SPARKLE || animationType == AnimationType.POLICE_LIGHTS){
             return SpeedType.PERIOD_ONLY;
         }
-        if (animationType == AnimationType.CylonEye || animationType == AnimationType.Rainbow ||
-                animationType == AnimationType.Snakes || animationType == AnimationType.Random ||
-                animationType == AnimationType.RainbowSnakes){
+        if (animationType == AnimationType.DROID_SCAN || animationType == AnimationType.RAINBOW ||
+                animationType == AnimationType.SNAKES || animationType == AnimationType.RANDOM ||
+                animationType == AnimationType.RAINBOW_SNAKES){
             return SpeedType.SPEED_ONLY;
         }
-        if(animationType == AnimationType.SineWave || animationType == AnimationType.SingleFill){
+        if(animationType == AnimationType.SINE_WAVE || animationType == AnimationType.SINGLE_FILL){
             return SpeedType.PERIOD_AND_SPEED;
         }
         else return SpeedType.NO_SPEED;
@@ -621,40 +621,40 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
 
     public void configureAnimation(boolean showTelemetry, boolean isBeingInserted){
         switch(selectedAnimation){
-            case Solid:
+            case SOLID:
                 configureSolid(showTelemetry, isBeingInserted);
                 break;
-            case Blink:
+            case BLINK:
                 configureBlink(showTelemetry, isBeingInserted);
                 break;
-            case Pulse:
+            case PULSE:
                 configurePulse(showTelemetry, isBeingInserted);
                 break;
-            case SineWave:
+            case SINE_WAVE:
                 configureSineWave(showTelemetry, isBeingInserted);
                 break;
-            case CylonEye:
-                configureCylonEye(showTelemetry, isBeingInserted);
+            case DROID_SCAN:
+                configureDroidScan(showTelemetry, isBeingInserted);
                 break;
-            case Rainbow:
+            case RAINBOW:
                 configureRainbow(showTelemetry, isBeingInserted);
                 break;
-            case Snakes:
+            case SNAKES:
                 configureSnakes(showTelemetry, isBeingInserted);
                 break;
-            case Random:
+            case RANDOM:
                 configureRandom(showTelemetry, isBeingInserted);
                 break;
-            case Sparkle:
+            case SPARKLE:
                 configureSparkle(showTelemetry, isBeingInserted);
                 break;
-            case SingleFill:
+            case SINGLE_FILL:
                 configureSingleFill(showTelemetry, isBeingInserted);
                 break;
-            case RainbowSnakes:
+            case RAINBOW_SNAKES:
                 configureRainbowSnakes(showTelemetry, isBeingInserted);
                 break;
-            case PoliceLights:
+            case POLICE_LIGHTS:
                 configurePoliceLights(showTelemetry, isBeingInserted);
                 break;
         }
@@ -807,31 +807,31 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
         }
     }
 
-    public void configureCylonEye(boolean showTelemetry, boolean isBeingInserted){
+    public void configureDroidScan(boolean showTelemetry, boolean isBeingInserted){
         switch (animationColor){
             case PRIMARY_COLOR:
-                cylonEye.setPrimaryColor(hsbViaJoystick(cylonEye.getPrimaryColor()));
+                droidScan.setPrimaryColor(hsbViaJoystick(droidScan.getPrimaryColor()));
                 break;
             case SECONDARY_COLOR:
-                cylonEye.setSecondaryColor(hsbViaJoystick(cylonEye.getSecondaryColor()));
+                droidScan.setSecondaryColor(hsbViaJoystick(droidScan.getSecondaryColor()));
                 break;
         }
 
         toggleThroughColors(gamepad1.yWasPressed(),false);
 
-        cylonEye.setStartIndex(startPoint);
-        cylonEye.setStopIndex(endPoint);
-        cylonEye.setBrightness(brightness);
-        cylonEye.setSpeed(speed);
+        droidScan.setStartIndex(startPoint);
+        droidScan.setStopIndex(endPoint);
+        droidScan.setBrightness(brightness);
+        droidScan.setSpeed(speed);
 
         if(isBeingInserted){
-            prism.insertAndUpdateAnimation(selectedLayer.layerHeight, cylonEye);
+            prism.insertAndUpdateAnimation(selectedLayer.layerHeight, droidScan);
         } else {
             prism.updateAnimationFromIndex(selectedLayer.layerHeight);
         }
 
         if(showTelemetry){
-            telemetry.addLine("Selected Animation: Cylon Eye");
+            telemetry.addLine("Selected Animation: Droid Scan");
             showHsbTelemetry();
             telemetry.addLine(hsbTelemetry);
             telemetry.addLine("");
@@ -1095,16 +1095,16 @@ public class GoBildaPrismConfigurator extends LinearOpMode {
     }
 
     public void resetStoredAnimations(){
-        Layers.LAYER_0.animationType = AnimationType.None;
-        Layers.LAYER_1.animationType = AnimationType.None;
-        Layers.LAYER_2.animationType = AnimationType.None;
-        Layers.LAYER_3.animationType = AnimationType.None;
-        Layers.LAYER_4.animationType = AnimationType.None;
-        Layers.LAYER_5.animationType = AnimationType.None;
-        Layers.LAYER_6.animationType = AnimationType.None;
-        Layers.LAYER_7.animationType = AnimationType.None;
-        Layers.LAYER_8.animationType = AnimationType.None;
-        Layers.LAYER_9.animationType = AnimationType.None;
+        Layers.LAYER_0.animationType = AnimationType.NONE;
+        Layers.LAYER_1.animationType = AnimationType.NONE;
+        Layers.LAYER_2.animationType = AnimationType.NONE;
+        Layers.LAYER_3.animationType = AnimationType.NONE;
+        Layers.LAYER_4.animationType = AnimationType.NONE;
+        Layers.LAYER_5.animationType = AnimationType.NONE;
+        Layers.LAYER_6.animationType = AnimationType.NONE;
+        Layers.LAYER_7.animationType = AnimationType.NONE;
+        Layers.LAYER_8.animationType = AnimationType.NONE;
+        Layers.LAYER_9.animationType = AnimationType.NONE;
     }
 
     /*

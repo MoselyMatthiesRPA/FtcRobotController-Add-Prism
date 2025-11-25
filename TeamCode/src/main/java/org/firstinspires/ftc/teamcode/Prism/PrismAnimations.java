@@ -32,19 +32,19 @@ import static org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver.LayerHeigh
 
 public class PrismAnimations {
     public enum AnimationType{
-        None(0),
-        Solid(1),
-        Blink(2),
-        Pulse(3),
-        SineWave(4),
-        CylonEye(5),
-        Rainbow(6),
-        Snakes(7),
-        Random(8),
-        Sparkle(9),
-        SingleFill(10),
-        RainbowSnakes(11),
-        PoliceLights(12);
+        NONE(0),
+        SOLID(1),
+        BLINK(2),
+        PULSE(3),
+        SINE_WAVE(4),
+        DROID_SCAN(5),
+        RAINBOW(6),
+        SNAKES(7),
+        RANDOM(8),
+        SPARKLE(9),
+        SINGLE_FILL(10),
+        RAINBOW_SNAKES(11),
+        POLICE_LIGHTS(12);
 
         public final int AnimationTypeIndex;
         AnimationType(int animationType){
@@ -238,7 +238,7 @@ public class PrismAnimations {
         private int period             = 2000;
         private int primaryColorPeriod = 1000;
 
-        public Blink(){ super(AnimationType.Blink); }
+        public Blink(){ super(AnimationType.BLINK); }
         public Blink(Color primaryColor) { 
             this();
             this.primaryColor = primaryColor;
@@ -304,32 +304,32 @@ public class PrismAnimations {
         }
     }
 
-    public static class CylonEye extends AnimationBase{
+    public static class DroidScan extends AnimationBase{
         private Color primaryColor   = Color.RED;
         private Color secondaryColor = Color.TRANSPARENT;
-        private CylonEyeStyle style  = CylonEyeStyle.BothTail;
+        private DroidScanStyle style  = DroidScanStyle.BOTH_TAIL;
         private float speed          = .4f;
         private int eyeWidth         = 3;
         private int trailWidth       = 3;
 
-        public enum CylonEyeStyle{
-            NoTail(0),
-            FrontTail(1),
-            BackTail(2),
-            BothTail(3);
+        public enum DroidScanStyle{
+            NO_TAIL(0),
+            FRONT_TAIL(1),
+            BACK_TAIL(2),
+            BOTH_TAIL(3);
             
             /* Package Private */ final byte styleValue;
-            CylonEyeStyle(int value){
+            DroidScanStyle(int value){
                 styleValue = (byte)value;
             }
         }
 
-        public CylonEye(){ super(AnimationType.CylonEye); }
-        public CylonEye(Color primaryColor) { 
+        public DroidScan(){ super(AnimationType.DROID_SCAN); }
+        public DroidScan(Color primaryColor) {
             this();
             this.primaryColor = primaryColor;
         }
-        public CylonEye(Color primaryColor, Color secondaryColor) {
+        public DroidScan(Color primaryColor, Color secondaryColor) {
             this(primaryColor);
             this.secondaryColor = secondaryColor;
         }
@@ -354,14 +354,14 @@ public class PrismAnimations {
          * @param trailWidth from 0 to 255.
          */
         public void setTrailWidth(int trailWidth)         { this.trailWidth = trailWidth; }
-        public void setCylonEyeStyle(CylonEyeStyle style) { this.style = style;           }
+        public void setDroidScanStyle(DroidScanStyle style) { this.style = style;           }
 
         public Color getSecondaryColor()        { return secondaryColor; }
         public Color getPrimaryColor()          { return primaryColor;   }
         public float getSpeed()                 { return speed;          }
         public int getEyeWidth()                { return eyeWidth;       }
         public int getTrailWidth()              { return trailWidth;     }
-        public CylonEyeStyle getCylonEyeStyle() { return style;          }
+        public DroidScanStyle getDroidScanStyle() { return style;          }
 
         @Override
         protected void updateAnimationSpecificValuesOverI2C(I2cDeviceSynchSimple deviceClient)
@@ -393,7 +393,7 @@ public class PrismAnimations {
             }
         }
 
-        public PoliceLights(){ super(AnimationType.PoliceLights); }
+        public PoliceLights(){ super(AnimationType.POLICE_LIGHTS); }
 
         /**
          * set the length of one loop of an animation in milliseconds.
@@ -435,7 +435,7 @@ public class PrismAnimations {
         private Color secondaryColor = Color.RED;
         private int period           = 1000;
 
-        public Pulse(){ super(AnimationType.Pulse); }
+        public Pulse(){ super(AnimationType.PULSE); }
         public Pulse(Color primaryColor) { 
             this();
             this.primaryColor = primaryColor;
@@ -488,7 +488,7 @@ public class PrismAnimations {
         private int repeatAfter = 25;
         private Direction direction = Direction.Forward;
 
-        public Rainbow(){ super(AnimationType.Rainbow); }
+        public Rainbow(){ super(AnimationType.RAINBOW); }
         public Rainbow(float startHue) {
             this();
             this.startHue = startHue;
@@ -571,7 +571,7 @@ public class PrismAnimations {
         private Direction direction   = Direction.Backward;
 
         //region Constructors
-        public RainbowSnakes(){ super(AnimationType.RainbowSnakes); }
+        public RainbowSnakes(){ super(AnimationType.RAINBOW_SNAKES); }
         public RainbowSnakes(float startHue, float stopHue) {
             this();
             this.startHue = startHue;
@@ -685,7 +685,7 @@ public class PrismAnimations {
         private float speed    = 0.1f;
 
         //region Constructors
-        public Random(){ super(AnimationType.Random); }
+        public Random(){ super(AnimationType.RANDOM); }
         public Random(float startHue, float stopHue){
             this();
             setHues(startHue, stopHue);
@@ -742,7 +742,7 @@ public class PrismAnimations {
         private float speed          = 0.5f;
         private int period           = 1000;
 
-        public SineWave(){ super(AnimationType.SineWave); }
+        public SineWave(){ super(AnimationType.SINE_WAVE); }
         public SineWave(Color primaryColor) { 
             this();
             this.primaryColor = primaryColor;
@@ -836,7 +836,7 @@ public class PrismAnimations {
             SingleFillStyle(int styleValue){ this.styleValue = (byte)styleValue; }
         }
 
-        public SingleFill(){ super(AnimationType.SingleFill); }
+        public SingleFill(){ super(AnimationType.SINGLE_FILL); }
         public SingleFill(Color... colors) {
             this();
             this.colors = colors;
@@ -901,7 +901,7 @@ public class PrismAnimations {
         private Direction direction   = Direction.Backward;
 
         //region Constructors
-        public Snakes(){ super(AnimationType.Snakes); }
+        public Snakes(){ super(AnimationType.SNAKES); }
         public Snakes(Color... colors) {
             this();
             this.colors = colors;
@@ -985,21 +985,21 @@ public class PrismAnimations {
     public static class Solid extends AnimationBase {
         private Color primaryColor = Color.RED;
 
-        public Solid(){super(AnimationType.Solid);}
+        public Solid(){super(AnimationType.SOLID);}
         public Solid(Color primaryColor) { 
-            super(AnimationType.Solid);
+            super(AnimationType.SOLID);
             this.primaryColor = primaryColor;
         }
         public Solid(Color primaryColor, int brightness) { 
-            super(AnimationType.Solid, brightness);
+            super(AnimationType.SOLID, brightness);
             this.primaryColor = primaryColor;
         }
         public Solid(Color primaryColor, int startIndex, int stopIndex){
-            super(AnimationType.Solid, startIndex, stopIndex);
+            super(AnimationType.SOLID, startIndex, stopIndex);
             this.primaryColor = primaryColor;
         }
         public Solid(Color primaryColor, int brightness, int startIndex, int stopIndex){
-            super(AnimationType.Solid, brightness, startIndex, stopIndex);
+            super(AnimationType.SOLID, brightness, startIndex, stopIndex);
             this.primaryColor = primaryColor;
         }
 
@@ -1021,7 +1021,7 @@ public class PrismAnimations {
         private int period = 100;
 
         //region Constructors
-        public Sparkle() { super(AnimationType.Sparkle); }
+        public Sparkle() { super(AnimationType.SPARKLE); }
         public Sparkle(Color primaryColor){ 
             this();
             this.primaryColor = primaryColor;
