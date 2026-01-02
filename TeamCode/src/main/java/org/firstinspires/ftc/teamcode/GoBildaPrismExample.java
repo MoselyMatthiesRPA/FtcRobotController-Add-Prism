@@ -77,12 +77,6 @@ public class GoBildaPrismExample extends LinearOpMode {
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
 
         /*
-         * Set the number of LEDs (starting at 0) that are in your strip. This can be longer
-         * than the actual length of the strip, but some animations won't look quite right.
-         */
-        prism.setStripLength(32);
-
-        /*
          * Here you can customize the specifics of different animations. Each animation has it's
          * own set of parameters that you can customize to create something unique! Each animation
          * has carefully selected default parameters. So you do not need to set each parameter
