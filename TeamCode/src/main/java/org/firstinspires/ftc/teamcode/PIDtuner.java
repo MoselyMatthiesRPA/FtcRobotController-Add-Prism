@@ -8,9 +8,9 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
-// This opmode is for tuning a PIDF controller(really just PF since that is all thats needed) on a flywheel for the high velocity setting.
+// This opmode is for tuning a PIDF controller(really just PF since that is all thats needed, I and D are set to 0) on a flywheel for the high velocity setting.
 // The low velocity is just to simulate a slow-down so that we can test how our controller ramps up for tuning purposes.
-// A PF should be tuned for one specific RPM, however you can mess with a scaler on your F to adjust for more distances.
+// A PF should be tuned for one specific RPM, however you can mess with a scaler on your F to adjust for more distances(Divide F by the RPM and take that constant and multiply it by the target RPM when used)
 // Keep in mind these velocities are in ticks per second, but you can convert to rpm by taking your desired RPM and solving
 // (RPM*28)/60, with 28 being the encoder ticks per output rotation in this instance(bare motor). This does still use the rev PID
 // though, which while it is good its not perfect and going full custom and only using encoders for measurement is better.
@@ -112,6 +112,5 @@ double F = 14.1;
          telemetry.addData("tuning F", "%.4f (D pad L/R", F);
          telemetry.addData("Step size", "%.4f (B button)", stepSizes[stepIndex]);
          telemetry.addData("error", "%.2f", error);
-//         telemetry.addData("kF", kF);
      }
 }

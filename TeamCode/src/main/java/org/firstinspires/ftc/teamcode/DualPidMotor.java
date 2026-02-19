@@ -20,7 +20,7 @@ public class DualPidMotor {
         topFlywheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         topFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         bottomFlywheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        topFlywheel.setDirection(DcMotor.Direction.REVERSE);
+        bottomFlywheel.setDirection(DcMotor.Direction.REVERSE);
         topFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         bottomFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -44,7 +44,11 @@ public class DualPidMotor {
 
         topFlywheel.setVelocity(targetVelocity);
         bottomFlywheel.setVelocity(targetVelocity);
-
     }
+    public double getCurrentRPM() {
+        double avgTicksPerSecond =
+                (topFlywheel.getVelocity() + bottomFlywheel.getVelocity()) / 2.0;
 
+        return (avgTicksPerSecond * 60.0) / 28;
+    }
 }
