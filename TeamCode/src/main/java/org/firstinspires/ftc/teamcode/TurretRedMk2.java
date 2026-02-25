@@ -11,30 +11,40 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.hardware.lynx.LynxModule;
+import java.util.List;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.Prism.Color;
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
+import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
 
 @Configurable
 @TeleOp(name = "turret red Mk2", group = "Competition")
 
 public class TurretRedMk2 extends OpMode {
-    DcMotorEx turretMotor, intake;
+    DcMotorEx intake;
+    Turret turret;
     DcMotor frontLeft, frontRight, backLeft, backRight;
     DualPidMotor flywheel;
     Servo rbstop, rhoodtilt;
     Limelight3A limelight;
+    GoBildaPrismDriver prism;
+    PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
+    PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
+    PrismAnimations.Solid solidRed = new PrismAnimations.Solid(Color.RED);
     public double targetAngle;
     public double turretAngle;
     public double output;
 
     // --- Compute magnitude ---
     public double deadband = 0.2;
-    public static double kP = 0.006;
+    public static double kP = 0.01;
+    public static double kD = 0.0007;
     public static double kF = 0.01;
     public static double MAX_ANGLE = 120;
-    public static double MIN_ANGLE = -90
-            ;
+    public static double MIN_ANGLE = -90;
     public static double maxPower = 1;
     public static double goaltarget = 0;
     public double lastOutput = 0;
@@ -46,7 +56,7 @@ public class TurretRedMk2 extends OpMode {
     private static double MAX_TILT =  0.65;
     private static final double MIN_TILT = 0;
 
-    double ticksPerTurretRev = 537.7 * (200.0 / 86.0);
+    double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
     private static final double INCHES_PER_METER = 39.3701;
 
     // --- YOUR CAL POINTS ---
@@ -61,7 +71,7 @@ public class TurretRedMk2 extends OpMode {
     private static final double DIST_B = TRUE_1M_IN - (DIST_A * RAW_AT_1M_IN);
     public static double RPM_AT_1M = 2300.0;
     public static double RPM_AT_2M = 2725.0;
-    public static double RPM_AT_FAR = 3050;
+    public static double RPM_AT_FAR = 3075;
     public static double TILT_AT_FAR = 0.6;
     public static double TILT_AT_1M = .34;
     public static double TILT_AT_2M = .55;
@@ -77,13 +87,16 @@ public class TurretRedMk2 extends OpMode {
     public double rx;
     public double usedRPM;
     public double usedTILT;
-    public static double intakeIntakingTargetRPM = 450;
+    public static double intakeIntakingTargetRPM = 700;
     public static double intakeShootingTargetRPM = 1000;
     public static double stopperDown = 0.13;
+    public static double maxchangescaler = 10;
     public static double stopperUp = 0;
     public double distanceInches;
+    public double lastError;
     public double lastBaseTarget;
     public static double turretAcceptableError = 0.5;
+    ElapsedTime loopTimer = new ElapsedTime();
     public static void updateModels() {
         // RPM model: RPM = M*Distance(in) + C, using (TRUE_1M, RPM_AT_1M) and (TRUE_2M, RPM_AT_2M)
         RPM_M = (RPM_AT_2M - RPM_AT_1M) / (TRUE_2M_IN - TRUE_1M_IN);
@@ -97,10 +110,12 @@ public class TurretRedMk2 extends OpMode {
         return Math.max(lo, Math.min(hi, v));
     }
     boolean override;
+    boolean taglastseen;
+    boolean wasspinningup;
     public double targetHoodTilt = 0;
     @Override
     public void init(){
-        turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+
         intake = hardwareMap.get(DcMotorEx.class, "intake");
         frontRight = hardwareMap.get(DcMotor.class, "frontright");
         frontLeft = hardwareMap.get(DcMotor.class, "frontleft");
@@ -111,18 +126,36 @@ public class TurretRedMk2 extends OpMode {
         rbstop = hardwareMap.get(Servo.class, "rbstop");
         rhoodtilt = hardwareMap.get(Servo.class, "rhoodtilt");
         flywheel = new DualPidMotor (hardwareMap, "topflywheel", "bottomflywheel");
-        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turretMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        turret = new Turret(hardwareMap, false);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
         limelight.pipelineSwitch(1); // Switch to pipeline number 1
 
-        override = false;
+        solidGreen.setBrightness(100);
+        solidGreen.setStartIndex(0);
+        solidGreen.setStopIndex(36);
 
+        solidPink.setBrightness(100);
+        solidPink.setStartIndex(0);
+        solidPink.setStopIndex(36);
+
+        solidRed.setBrightness(100);
+        solidRed.setStartIndex(0);
+        solidRed.setStopIndex(36);
+
+        override = false;
         rbstop.setPosition(0);
         rhoodtilt.setPosition(MIN_TILT);
+        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidRed);
+
+        List<LynxModule> allHubs;
+            allHubs = hardwareMap.getAll(LynxModule.class);
+
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
     }
 
     @Override
@@ -132,6 +165,9 @@ public class TurretRedMk2 extends OpMode {
 
     @Override
     public void loop() {
+        double dt = loopTimer.seconds();
+        loopTimer.reset();
+
         updateModels();
         flywheel.Update();
         double cx = gamepad2.right_stick_x;
@@ -187,7 +223,7 @@ public class TurretRedMk2 extends OpMode {
         }
             // we nest our turret controls inside of the !totaloverride so that if we run totaloverride and aim the bot with the drivetrain, we can easily lock the turret in place
 
-        turretAngle = (turretMotor.getCurrentPosition() / ticksPerTurretRev) * 360.0; // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
+        turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
         if (launching){
             flywheel.setVelocity(lastGoodFlywheelRPM);
             intake.setVelocity((intakeShootingTargetRPM*145.1)/60);
@@ -216,18 +252,23 @@ public class TurretRedMk2 extends OpMode {
             rbstop.setPosition(stopperDown);
         }
 
-        if (tagRecentlySeen){
+        if (tagRecentlySeen && !taglastseen){
             rhoodtilt.setPosition(lastGoodHoodTilt);
-        } else {
+            prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidGreen);
+        } else if (!tagRecentlySeen && taglastseen) {
             rhoodtilt.setPosition(MIN_TILT);
+            prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
         }
+
+        wasspinningup = spinningup;
+        taglastseen = tagRecentlySeen;
 
         if (!totaloverride) {
             // Real meat and potatoes of our logic here. Takes the values from our camera, booleans, and controls and turns them into actual actions.
             if (turretjoystick) { // Runs turret off of joystick if magnitude of joystick exceeds 0.8.
                 if (!turretzero) {
                     baseTarget = Math.toDegrees(Math.atan2(cx, cy));
-                } else {
+                } else if (turretzero){
                     baseTarget = 0;
                 }
 
@@ -251,52 +292,10 @@ public class TurretRedMk2 extends OpMode {
             }
             lastBaseTarget = baseTarget;
         }
-            double bestError = 0;
-            double minChange = Double.MAX_VALUE;
-
-            for (int k = -1; k <= 1; k++) { // calculates 3 different equivalent angles based on the current angle from the target, so we can see if any possible rotations to the target are legal
-                double candidate = baseTarget + 360 * k;
-
-                if (candidate >= MIN_ANGLE && candidate <= MAX_ANGLE) { // filters out any illegal turret positions that were calculated beforehand (likely 2/3 or all 3 positions generated)
-                    double err = candidate - turretAngle; // figures out how far the turret would need to rotate
-                    if (Math.abs(err) < minChange) { // chooses the smallest change available out of the selections
-                        minChange = Math.abs(err);
-                        bestError = err;
-                    }
-                }
-            }
-
-            if (minChange == Double.MAX_VALUE) { // clamps rotation and goes to the closest hard stop of rotation to the tag if no calculated angles are legal
-                bestError = (baseTarget > MAX_ANGLE ? MAX_ANGLE : MIN_ANGLE) - turretAngle;
-            }
-
-            error = bestError; // assigns our error to the best available error provided by our model to take the closest path possible
-
-            // ---- PID ----
-            output = kP * error;
-
-            if (Math.abs(error) > turretAcceptableError) {
-                output += Math.signum(error) * kF;
-            }
-
-// Clamp max torque
-            output = Math.max(-maxPower, Math.min(maxPower, output));
-
-// Slew rate limit
-
-            double delta = output - lastOutput;
-
-            if (delta > maxChange) delta = maxChange;
-            if (delta < -maxChange) delta = -maxChange;
-
-            output = lastOutput + delta;
-            lastOutput = output;
-
-            turretMotor.setPower(output);
 
             telemetry.addData("current angle", turretAngle);
-            telemetry.addData("target angle", baseTarget);
-            telemetry.addData("output", output);
+            telemetry.addData("target angle", turret.getTargetAngle());
+            telemetry.addData("output", turret.getOutput());
             telemetry.addData("override", override);
             telemetry.addData("total override", totaloverride);
             telemetry.addData("tracking ready", trackingready);
@@ -312,10 +311,14 @@ public class TurretRedMk2 extends OpMode {
             telemetry.addData("spinning", flywheelspin);
             telemetry.addData("launching", launching);
             telemetry.addData("distance from tag", distanceInches);
+            telemetry.addData("Loop Time (ms)", dt * 1000);
+            telemetry.addData("Loop Hz", 1.0 / dt);
             telemetry.update();
 
+        turret.setTargetAngle(baseTarget);
+        turret.update(dt);
 
-            // totaloverride basically changes tracking to rotating the whole robot to the apriltag, as we did before
+        // totaloverride basically changes tracking to rotating the whole robot to the apriltag, as we did before
             if (totaloverride && gamepad1.left_bumper && tagRecentlySeen) {
                     baseTarget = lastBaseTarget;
                     double TARGET_YAW = 0.8;

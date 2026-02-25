@@ -19,13 +19,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .forwardZeroPowerAcceleration(-28.106932904211135)
-            .lateralZeroPowerAcceleration(-55.64495097137803)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.015, 0, 0.018, 0.03))
-            .headingPIDFCoefficients(new PIDFCoefficients(0.8, 0.02, 0.1, 0.02))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.012,0.0,0.0001,0.6,0.002))
+            .forwardZeroPowerAcceleration(-30.335372592126898)
+            .lateralZeroPowerAcceleration(-60.96456600228308)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.001, 0.02))
+            .headingPIDFCoefficients(new PIDFCoefficients(1, 0.02, 0.0001, 0.03))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01,0.0,0,0,0.02))
             .centripetalScaling(0.005)
-            .mass(9);
+            .mass(10);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
@@ -37,13 +37,13 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .yVelocity(50.589253583292326)
-            .xVelocity(71.82483342688855);
+            .yVelocity(54.56263744924952)
+            .xVelocity(74.46184533787523);
 
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(124)
-            .strafePodX(16)
+            .forwardPodY(16)
+            .strafePodX(-132)
             .distanceUnit(DistanceUnit.MM)
             .hardwareMapName("odo")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
