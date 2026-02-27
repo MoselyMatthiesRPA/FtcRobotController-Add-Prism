@@ -17,9 +17,9 @@ public class Turret {
     private double lastOutput = 0.0;
 
     // --- Constants (tune these) ---
-    public static double kP = 0.01;
+    public static double kP = 0.0145;
     public static double kD = 0.001;
-    public static double kF = 0.06;
+    public static double kF = 0.07;
     public static double MAX_ANGLE = 120;
     public static double MIN_ANGLE = -90;
     double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
@@ -27,7 +27,7 @@ public class Turret {
     public static double maxPower = 1;
     public static double turretAcceptableError = 0.5;
     public static double maxChange = 0.05;
-    public static double maxchangescaler = 2.0;
+    public static double maxchangescaler = 5.0;
     public double output;
 
     public Turret(HardwareMap hardwareMap, boolean resetEncoder) {

@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad2;
-
 import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -21,9 +19,9 @@ import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
 
 @Configurable
-@TeleOp(name = "turret red Mk2", group = "Competition")
+@TeleOp(name = "turret blue Mk2", group = "Competition")
 
-public class TurretRedMk2 extends OpMode {
+public class TurretBlueMk2 extends OpMode {
     DcMotorEx intake;
     Turret turret;
     DcMotor frontLeft, frontRight, backLeft, backRight;
@@ -33,7 +31,7 @@ public class TurretRedMk2 extends OpMode {
     GoBildaPrismDriver prism;
     PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
     PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
-    PrismAnimations.Solid solidRed = new PrismAnimations.Solid(Color.RED);
+    PrismAnimations.Solid solidBlue = new PrismAnimations.Solid(Color.BLUE);
     public double targetAngle;
     public double turretAngle;
     public double output;
@@ -69,7 +67,7 @@ public class TurretRedMk2 extends OpMode {
     // Linear correction: corrected = A*raw + B, fit to (RAW_AT_1M -> TRUE_1M) and (RAW_AT_2M -> TRUE_2M)
     private static final double DIST_A = (TRUE_2M_IN - TRUE_1M_IN) / (RAW_AT_2M_IN - RAW_AT_1M_IN);
     private static final double DIST_B = TRUE_1M_IN - (DIST_A * RAW_AT_1M_IN);
-    public static double RPM_AT_1M = 2375;
+    public static double RPM_AT_1M = 2375.0;
     public static double RPM_AT_2M = 2725.0;
     public static double RPM_AT_FAR = 3075;
     public static double TILT_AT_FAR = 0.6;
@@ -83,7 +81,7 @@ public class TurretRedMk2 extends OpMode {
     public double lastGoodHoodTilt = 0;
     double error;
     public double baseTarget = 0;
-    public static double targetTurretangle = 2; // target angle between the turret and the target in degrees
+    public static double targetTurretangle = -2; // target angle between the turret and the target in degrees
     public double rx;
     public double usedRPM;
     public double usedTILT;
@@ -131,7 +129,7 @@ public class TurretRedMk2 extends OpMode {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
-        limelight.pipelineSwitch(1); // Switch to pipeline number 1
+        limelight.pipelineSwitch(0); // Switch to pipeline number 1
 
         solidGreen.setBrightness(100);
         solidGreen.setStartIndex(0);
@@ -141,17 +139,17 @@ public class TurretRedMk2 extends OpMode {
         solidPink.setStartIndex(0);
         solidPink.setStopIndex(36);
 
-        solidRed.setBrightness(100);
-        solidRed.setStartIndex(0);
-        solidRed.setStopIndex(36);
+        solidBlue.setBrightness(100);
+        solidBlue.setStartIndex(0);
+        solidBlue.setStopIndex(36);
 
         override = false;
         rbstop.setPosition(0);
         rhoodtilt.setPosition(MIN_TILT);
-        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidRed);
+        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidBlue);
 
         List<LynxModule> allHubs;
-            allHubs = hardwareMap.getAll(LynxModule.class);
+        allHubs = hardwareMap.getAll(LynxModule.class);
 
         for (LynxModule hub : allHubs) {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
@@ -221,7 +219,7 @@ public class TurretRedMk2 extends OpMode {
             lastGoodFlywheelRPM = targetFlywheelRPM;
             lastTagTime = System.currentTimeMillis();
         }
-            // we nest our turret controls inside of the !totaloverride so that if we run totaloverride and aim the bot with the drivetrain, we can easily lock the turret in place
+        // we nest our turret controls inside of the !totaloverride so that if we run totaloverride and aim the bot with the drivetrain, we can easily lock the turret in place
 
         turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
         if (launching){
@@ -293,68 +291,68 @@ public class TurretRedMk2 extends OpMode {
             lastBaseTarget = baseTarget;
         }
 
-            telemetry.addData("current angle", turretAngle);
-            telemetry.addData("target angle", turret.getTargetAngle());
-            telemetry.addData("output", turret.getOutput());
-            telemetry.addData("override", override);
-            telemetry.addData("total override", totaloverride);
-            telemetry.addData("tracking ready", trackingready);
-            telemetry.addData("intaking", intaking);
-            telemetry.addData("jammed", jammed);
-            telemetry.addData("unjam", unjam);
-            telemetry.addData("unload", unload);
-            telemetry.addData("goodforlaunch", goodforlaunch);
-            telemetry.addData("current flywheel RPM", flywheel.getCurrentRPM());
-            telemetry.addData("target RPM", lastGoodFlywheelRPM);
-            telemetry.addData("targethoodtilt", lastGoodHoodTilt);
-            telemetry.addData("spinning up", spinningup);
-            telemetry.addData("spinning", flywheelspin);
-            telemetry.addData("launching", launching);
-            telemetry.addData("distance from tag", distanceInches);
-            telemetry.addData("Loop Time (ms)", dt * 1000);
-            telemetry.addData("Loop Hz", 1.0 / dt);
-            telemetry.update();
+        telemetry.addData("current angle", turretAngle);
+        telemetry.addData("target angle", turret.getTargetAngle());
+        telemetry.addData("output", turret.getOutput());
+        telemetry.addData("override", override);
+        telemetry.addData("total override", totaloverride);
+        telemetry.addData("tracking ready", trackingready);
+        telemetry.addData("intaking", intaking);
+        telemetry.addData("jammed", jammed);
+        telemetry.addData("unjam", unjam);
+        telemetry.addData("unload", unload);
+        telemetry.addData("goodforlaunch", goodforlaunch);
+        telemetry.addData("current flywheel RPM", flywheel.getCurrentRPM());
+        telemetry.addData("target RPM", lastGoodFlywheelRPM);
+        telemetry.addData("targethoodtilt", lastGoodHoodTilt);
+        telemetry.addData("spinning up", spinningup);
+        telemetry.addData("spinning", flywheelspin);
+        telemetry.addData("launching", launching);
+        telemetry.addData("distance from tag", distanceInches);
+        telemetry.addData("Loop Time (ms)", dt * 1000);
+        telemetry.addData("Loop Hz", 1.0 / dt);
+        telemetry.update();
 
         turret.setTargetAngle(baseTarget);
         turret.update(dt);
 
         // totaloverride basically changes tracking to rotating the whole robot to the apriltag, as we did before
-            if (totaloverride && gamepad1.left_bumper && tagRecentlySeen) {
-                    baseTarget = lastBaseTarget;
-                    double TARGET_YAW = 0.8;
-                    double ERROR_YAW = (TARGET_YAW - lastGoodtTx);
-                    rx = (ERROR_YAW * kP) * kF;
-            } else {
-                rx = gamepad1.right_stick_x;
-            }
+        if (totaloverride && gamepad1.left_bumper && tagRecentlySeen) {
+            baseTarget = lastBaseTarget;
+            double TARGET_YAW = 0.8;
+            double ERROR_YAW = (TARGET_YAW - lastGoodtTx);
+            rx = (ERROR_YAW * kP) * kF;
+        } else {
+            rx = gamepad1.right_stick_x;
+        }
 
 // Reads joystick values for our Mecanum logic
-            double y = -gamepad1.left_stick_y;  // Forward is positive
-            double x = gamepad1.left_stick_x;  // Strafe
+        double y = -gamepad1.left_stick_y;  // Forward is positive
+        double x = gamepad1.left_stick_x;  // Strafe
 
 // Mecanum mixing
-            double frontLeftPower = y + x + (0.8 * rx);
-            double backLeftPower = y - x + (0.8 * rx);
-            double frontRightPower = y - x - (0.8 * rx);
-            double backRightPower = y + x - (0.8 * rx);
+        double frontLeftPower = y + x + (0.8 * rx);
+        double backLeftPower = y - x + (0.8 * rx);
+        double frontRightPower = y - x - (0.8 * rx);
+        double backRightPower = y + x - (0.8 * rx);
 
 // Normalize powers so no value exceeds 1.0
-            double max = Math.max(
-                    Math.max(Math.abs(frontLeftPower), Math.abs(backLeftPower)),
-                    Math.max(Math.abs(frontRightPower), Math.abs(backRightPower)));
+        double max = Math.max(
+                Math.max(Math.abs(frontLeftPower), Math.abs(backLeftPower)),
+                Math.max(Math.abs(frontRightPower), Math.abs(backRightPower)));
 
-            if (max > 1.0) {
-                frontLeftPower /= max;
-                backLeftPower /= max;
-                frontRightPower /= max;
-                backRightPower /= max;
-            }
+        if (max > 1.0) {
+            frontLeftPower /= max;
+            backLeftPower /= max;
+            frontRightPower /= max;
+            backRightPower /= max;
+        }
 
 // Send power to motors
-            frontLeft.setPower(frontLeftPower);
-            backLeft.setPower(backLeftPower);
-            frontRight.setPower(frontRightPower);
-            backRight.setPower(backRightPower);
+        frontLeft.setPower(frontLeftPower);
+        backLeft.setPower(backLeftPower);
+        frontRight.setPower(frontRightPower);
+        backRight.setPower(backRightPower);
 
     }
 }
