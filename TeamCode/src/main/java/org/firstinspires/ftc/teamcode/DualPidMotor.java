@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 public class DualPidMotor {
     private DcMotorEx topFlywheel, bottomFlywheel;
     double targetRPM;
-    public static double P = 80;
+    public static double P = 120;
     double kf = 0.00542307692307692; // Constant used to create F by multiplying kf by targetRPM, allowing for scalability with different RPMs.
     double F;
 

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Autos;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
@@ -7,25 +7,24 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
-import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.internal.system.ClassFactoryImpl;
+import org.firstinspires.ftc.teamcode.DualPidMotor;
 import org.firstinspires.ftc.teamcode.Prism.Color;
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
+import org.firstinspires.ftc.teamcode.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "Red Goal Close zone 12 artifact", group = "Competition")
-public class RedGoal12 extends OpMode {
+@Autonomous(name = "Red Far zone 9", group = "Competition")
+public class RedFar9 extends OpMode {
     private Follower follower; // Pedro Pathing follower instance
     private Timer pathTimer;
     ElapsedTime stateTimer = new ElapsedTime();
@@ -37,21 +36,19 @@ public class RedGoal12 extends OpMode {
     DualPidMotor flywheel;
     ElapsedTime loopTimer = new ElapsedTime();
     double dt = 0;
-    public static double turretFallBackAngle = -43.8;
-    public static double shootTime = 1200;
-    public static double waitTime = 1600;
-    public static double classifierTime = 1400;
-    public static double intakeShootRPM = 1150;
+    public static double turretFallBackAngle = -65.5;
+    public static double shootTime = 2200;
+    public static double waitTime = 1700;
+    public static double classifierTime = 2000;
+    public static double intakeShootRPM = 800;
     public static double intakingRPM = 1100;
     public static double stopperDown = 0.16;
     public static double stopperUp = 0;
-    public static double hoodUp = 0.34;
+    public static double hoodUp = 0.75;
     public static double hoodDown = 0.03;
     boolean cameragood;
     public double turretTarget = -2;
     public static double targetoffset = 2;
-    public static double flywheelRPM = 2350;
-    boolean turretZero = false;
 
 
     PrismAnimations.RainbowSnakes rainbow = new PrismAnimations.RainbowSnakes();
@@ -61,59 +58,41 @@ public class RedGoal12 extends OpMode {
     PathState pathState;
     public enum PathState{
         START,
-        DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS,
-        CLOSESHOOT1,
-        DRIVE_CLOSESHOOTPOS_CLOSELOAD,
-        CLOSELOAD,
-        DRIVE_CLOSELOADENDPOS_CLOSESHOOTPOS,
-        CLOSESHOOT2,
-        DRIVE_CLOSESHOOTPOS_MIDDLELOAD,
+        DRIVE_FARSTARTPOS_FARSHOOTPOS,
+        FARSHOOT1,
+        DRIVE_FARSHOOTPOS_MIDDLELOAD,
         MIDDLELOAD,
         CLASSIFIERSETUP,
         CLASSIFIEREMPTY,
         DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS,
-        CLOSESHOOT3,
-        DRIVE_CLOSESHOOTPOS_FARLOADSTARTPOS,
+        FARSHOOT2,
+        DRIVE_FARSHOOTPOS_FARLOADSTARTPOS,
         FARLOAD,
-        DRIVE_FARLOADENDPOS_CLOSESHOOTPOS,
-        CLOSESHOOT4,
+        DRIVE_FARLOADENDPOS_FARSHOOTPOS,
+        FARSHOOT3,
         LEAVE
     }
 
-    private final Pose startPose = new Pose(124, 124, Math.toRadians(306));
-    private final Pose closeZoneShootPose = new Pose (99, 100, Math.toRadians(0));
-    private final Pose closeLoadStartPose = new Pose (95, 83.5, Math.toRadians(0));
-    private final Pose closeLoadEndPose = new Pose (126, 83.5, Math.toRadians(0));
+    private final Pose startPose = new Pose(95, 7.2, Math.toRadians(0));
+    private final Pose farZoneShootPose = new Pose (86, 16, Math.toRadians(0));
     private final Pose middleLoadStartPose = new Pose (96, 58, Math.toRadians(0));
-    private final Pose middleLoadEndPose = new Pose (133, 58, Math.toRadians(0));
+    private final Pose middleLoadEndPose = new Pose (134, 58, Math.toRadians(0));
     private final Pose farLoadStartPose = new Pose (95, 34, Math.toRadians(0));
-    private final Pose farLoadControlPose = new Pose (100, 55, Math.toRadians(0));
-    private final Pose farLoadEndPose = new Pose (133, 34, Math.toRadians(0));
+    private final Pose middleLoadControlPose = new Pose (105, 60, Math.toRadians(0));
+    private final Pose farLoadEndPose = new Pose (134, 34, Math.toRadians(0));
     private final Pose classifierSetup = new Pose (120, 65, Math.toRadians(10));
-    private final Pose classifierEmpty = new Pose (126.25, 71.5, Math.toRadians(10));
-    private final Pose leavePose = new Pose (110,88,Math.toRadians(270));
+    private final Pose classifierEmpty = new Pose (128.25, 71.5, Math.toRadians(10));
+    private final Pose farLeavePose = new Pose (120, 10, Math.toRadians(0));
 
-    private PathChain CloseStartDriveCloseShoot, CloseShootDriveCloseLoad, CloseLoad, DriveCloseLoadCloseShoot, DriveCloseShootMiddleLoad, MiddleLoad, DriveMiddleLoadClassifierSetup, ClassifierEmpty, DriveClassifierEmptyCloseShoot, DriveCloseShootFarLoad, FarLoad, DriveFarLoadCloseShoot, FarShootLeave;
+    private PathChain FarStartDriveFarShoot, FarShootDriveMiddleLoad, MiddleLoad, DriveMiddleLoadClassifierSetup, ClassifierEmpty, DriveClassifierEmptyFarShoot, DriveFarShootFarLoad, FarLoad, DriveFarLoadFarShoot, FarShootLeave;
     public void buildPaths() {
-        CloseStartDriveCloseShoot = follower.pathBuilder()
-                .addPath(new BezierLine(startPose, closeZoneShootPose))
-                .setLinearHeadingInterpolation(startPose.getHeading(), closeZoneShootPose.getHeading())
+        FarStartDriveFarShoot = follower.pathBuilder()
+                .addPath(new BezierLine(startPose, farZoneShootPose))
+                .setLinearHeadingInterpolation(startPose.getHeading(), farZoneShootPose.getHeading())
                 .build();
-        CloseShootDriveCloseLoad = follower.pathBuilder()
-                .addPath(new BezierLine(closeZoneShootPose, closeLoadStartPose))
-                .setLinearHeadingInterpolation(closeZoneShootPose.getHeading(), closeLoadStartPose.getHeading())
-                .build();
-        CloseLoad = follower.pathBuilder()
-                .addPath(new BezierLine(closeLoadStartPose, closeLoadEndPose))
-                .setConstantHeadingInterpolation(closeLoadEndPose.getHeading())
-                .build();
-        DriveCloseLoadCloseShoot = follower.pathBuilder()
-                .addPath(new BezierLine(closeLoadEndPose, closeZoneShootPose))
-                .setConstantHeadingInterpolation(closeZoneShootPose.getHeading())
-                .build();
-        DriveCloseShootMiddleLoad = follower.pathBuilder()
-                .addPath(new BezierLine(closeZoneShootPose, middleLoadStartPose))
-                .setConstantHeadingInterpolation(closeLoadStartPose.getHeading())
+        FarShootDriveMiddleLoad = follower.pathBuilder()
+                .addPath(new BezierLine(farZoneShootPose, middleLoadStartPose))
+                .setLinearHeadingInterpolation(farZoneShootPose.getHeading(), middleLoadStartPose.getHeading())
                 .build();
         MiddleLoad = follower.pathBuilder()
                 .addPath(new BezierLine(middleLoadStartPose, middleLoadEndPose))
@@ -127,104 +106,65 @@ public class RedGoal12 extends OpMode {
                 .addPath(new BezierLine(classifierSetup, classifierEmpty))
                 .setLinearHeadingInterpolation(classifierSetup.getHeading(), classifierEmpty.getHeading())
                 .build();
-        DriveClassifierEmptyCloseShoot = follower.pathBuilder()
-                .addPath(new BezierLine(classifierEmpty, closeZoneShootPose))
-                .setLinearHeadingInterpolation(classifierEmpty.getHeading(), closeZoneShootPose.getHeading())
+        DriveClassifierEmptyFarShoot = follower.pathBuilder()
+                .addPath(new BezierCurve(classifierEmpty, middleLoadControlPose, farZoneShootPose))
+                .setLinearHeadingInterpolation(classifierEmpty.getHeading(), farZoneShootPose.getHeading())
                 .build();
-        DriveCloseShootFarLoad = follower.pathBuilder()
-                .addPath(new BezierLine(closeZoneShootPose, farLoadStartPose))
-                .setLinearHeadingInterpolation(closeZoneShootPose.getHeading(), farLoadStartPose.getHeading())
+        DriveFarShootFarLoad = follower.pathBuilder()
+                .addPath(new BezierLine(farZoneShootPose, farLoadStartPose))
+                .setLinearHeadingInterpolation(farZoneShootPose.getHeading(), farLoadStartPose.getHeading())
                 .build();
         FarLoad = follower.pathBuilder()
                 .addPath(new BezierLine(farLoadStartPose, farLoadEndPose))
                 .setLinearHeadingInterpolation(farLoadStartPose.getHeading(), farLoadEndPose.getHeading())
                 .build();
-        DriveFarLoadCloseShoot = follower.pathBuilder()
-                .addPath(new BezierLine(farLoadEndPose, closeZoneShootPose))
-                .setLinearHeadingInterpolation(farLoadEndPose.getHeading(), closeZoneShootPose.getHeading())
+        DriveFarLoadFarShoot = follower.pathBuilder()
+                .addPath(new BezierLine(farLoadEndPose, farZoneShootPose))
+                .setLinearHeadingInterpolation(farLoadEndPose.getHeading(), farZoneShootPose.getHeading())
                 .build();
         FarShootLeave = follower.pathBuilder()
-                .addPath(new BezierLine(closeZoneShootPose, leavePose))
-                .setLinearHeadingInterpolation(closeZoneShootPose.getHeading(), leavePose.getHeading())
+                .addPath(new BezierLine(farZoneShootPose, farLeavePose))
+                .setLinearHeadingInterpolation(farZoneShootPose.getHeading(), farLeavePose.getHeading())
                 .build();
     }
     public void statePathUpdate(){
         switch(pathState){
             case START:
-                follower.followPath(CloseStartDriveCloseShoot, 0.9, true);
-                flywheel.setVelocity(flywheelRPM);
+                follower.followPath(FarStartDriveFarShoot, 0.6, true);
+                flywheel.setVelocity(3175);
                 rhoodtilt.setPosition(hoodUp);
                 stateTimer.reset();
-                setPathState(PathState.DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS);
+                setPathState(PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS);
                 break;
 
-            case DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS:
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
+            case DRIVE_FARSTARTPOS_FARSHOOTPOS:
+                turret.setTargetAngle(turretTarget);
+                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
                     if (stateTimer.milliseconds() > waitTime) {
                         stateTimer.reset();
-                        setPathState(PathState.CLOSESHOOT1);
+                        setPathState(PathState.FARSHOOT1);
                     }
                 }
                 break;
 
-            case CLOSESHOOT1:
+            case FARSHOOT1:
                 if (stateTimer.milliseconds() < shootTime){
                     rbstop.setPosition(stopperUp);
                     intake.setVelocity((intakeShootRPM * 145.1)/60);
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
+                    turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
-                    follower.followPath(CloseShootDriveCloseLoad);
+                    follower.followPath(FarShootDriveMiddleLoad);
                     stateTimer.reset();
-                    setPathState(PathState.DRIVE_CLOSESHOOTPOS_CLOSELOAD);
+                setPathState(PathState.DRIVE_FARSHOOTPOS_MIDDLELOAD);
                 }
-                break;
-            case DRIVE_CLOSESHOOTPOS_CLOSELOAD:
+
+            break;
+            case DRIVE_FARSHOOTPOS_MIDDLELOAD:
                 if (!follower.isBusy()){
-                    follower.followPath(CloseLoad, 0.5, true);
-                    intake.setVelocity((intakingRPM * 145.1)/60);
-                    stateTimer.reset();
-                    setPathState(PathState.CLOSELOAD);
-                }
-                break;
-            case CLOSELOAD:
-                if (!follower.isBusy()){
-                    intake.setVelocity(0);
-                    follower.followPath(DriveCloseLoadCloseShoot, 1, false);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_CLOSELOADENDPOS_CLOSESHOOTPOS);
-                }
-                break;
-            case DRIVE_CLOSELOADENDPOS_CLOSESHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-                turretZero = false;
-//                turret.setTargetAngle(turretFallBackAngle);
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
-                    stateTimer.reset();
-                    setPathState(PathState.CLOSESHOOT2);
-                }
-                break;
-            case CLOSESHOOT2:
-                if (stateTimer.milliseconds() < shootTime){
-                    rbstop.setPosition(stopperUp);
-                    intake.setVelocity((intakeShootRPM * 145.1)/60);
-                } else if (stateTimer.milliseconds() > shootTime){
-                    intake.setVelocity(0);
-                    rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
-                    flywheel.setVelocity(0);
-                    follower.followPath(DriveCloseShootMiddleLoad, true);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_CLOSESHOOTPOS_MIDDLELOAD);
-                }
-                break;
-            case DRIVE_CLOSESHOOTPOS_MIDDLELOAD:
-                if (!follower.isBusy()){
-                    follower.followPath(MiddleLoad, 0.5, true);
+                    follower.followPath(MiddleLoad, 0.5, false);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.MIDDLELOAD);
@@ -233,7 +173,7 @@ public class RedGoal12 extends OpMode {
             case MIDDLELOAD:
                 if (!follower.isBusy()){
                     intake.setVelocity(0);
-                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.8, false);
+                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.7, false);
                     stateTimer.reset();
                     setPathState(PathState.CLASSIFIERSETUP);
                 }
@@ -248,39 +188,37 @@ public class RedGoal12 extends OpMode {
             case CLASSIFIEREMPTY:
                 if (!follower.isBusy()) {
                     if (stateTimer.milliseconds() > classifierTime) {
-                        follower.followPath(DriveClassifierEmptyCloseShoot, true);
+                        follower.followPath(DriveClassifierEmptyFarShoot, true);
                         stateTimer.reset();
                         setPathState(PathState.DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS);
                     }
                 }
                 break;
             case DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-//                turret.setTargetAngle(turretFallBackAngle);
-                turretZero = false;
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
-                    stateTimer.reset();
-                    setPathState(PathState.CLOSESHOOT3);
-                }
+                flywheel.setVelocity(3175);
+                turret.setTargetAngle(turretFallBackAngle);
+                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+                        stateTimer.reset();
+                        setPathState(PathState.FARSHOOT2);
+                    }
                 break;
-            case CLOSESHOOT3:
+            case FARSHOOT2:
                 if (stateTimer.milliseconds() < shootTime){
                     rbstop.setPosition(stopperUp);
                     intake.setVelocity((intakeShootRPM * 145.1)/60);
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
+                    turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
-                    follower.followPath(DriveCloseShootFarLoad, true);
+                    follower.followPath(DriveFarShootFarLoad, true);
                     stateTimer.reset();
-                    setPathState(PathState.DRIVE_CLOSESHOOTPOS_FARLOADSTARTPOS);
+                    setPathState(PathState.DRIVE_FARSHOOTPOS_FARLOADSTARTPOS);
                 }
                 break;
-            case DRIVE_CLOSESHOOTPOS_FARLOADSTARTPOS:
+            case DRIVE_FARSHOOTPOS_FARLOADSTARTPOS:
                 if (!follower.isBusy()){
-                    follower.followPath(FarLoad, 0.5,true);
+                    follower.followPath(FarLoad, 0.5, true);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.FARLOAD);
@@ -289,29 +227,27 @@ public class RedGoal12 extends OpMode {
             case FARLOAD:
                 if (!follower.isBusy()){
                     intake.setVelocity(0);
-                    follower.followPath(DriveFarLoadCloseShoot, true);
+                    follower.followPath(DriveFarLoadFarShoot, true);
                     stateTimer.reset();
-                    setPathState(PathState.DRIVE_FARLOADENDPOS_CLOSESHOOTPOS);
+                    setPathState(PathState.DRIVE_FARLOADENDPOS_FARSHOOTPOS);
                 }
                 break;
-            case DRIVE_FARLOADENDPOS_CLOSESHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-//                turret.setTargetAngle(turretFallBackAngle);
-                turretZero = false;
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
+            case DRIVE_FARLOADENDPOS_FARSHOOTPOS:
+                flywheel.setVelocity(3175);
+                turret.setTargetAngle(turretFallBackAngle);
+                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
                     stateTimer.reset();
-                    setPathState(PathState.CLOSESHOOT4);
+                    setPathState(PathState.FARSHOOT3);
                 }
                 break;
-            case CLOSESHOOT4:
+            case FARSHOOT3:
                 if (stateTimer.milliseconds() < shootTime){
                     rbstop.setPosition(stopperUp);
                     intake.setVelocity((intakeShootRPM * 145.1)/60);
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
+                    turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
                     follower.followPath(FarShootLeave, true);
                     stateTimer.reset();
@@ -334,7 +270,7 @@ public class RedGoal12 extends OpMode {
 
     @Override
     public void init() {
-        pathState = PathState.DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS;
+        pathState = PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS;
         pathTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -386,21 +322,18 @@ public class RedGoal12 extends OpMode {
         follower.update();
         statePathUpdate();
 
-        double turretAngle = turret.getCurrentAngle();
-        double targetTurretangle = turret.getTargetAngle();
-        LLResult result = limelight.getLatestResult();
-        if (turretZero) {
-            if (result != null && result.isValid()) {
-                double lastGoodtTx = result.getTx(); // angle from tag camera-relative(from limelight)
-                turretTarget = turretAngle + targetTurretangle - lastGoodtTx;
-            } else {
-                turretTarget = turretFallBackAngle;
-            }
-        } else {
-            turretTarget = 0;
+//        double turretAngle = turret.getCurrentAngle();
+//        double targetTurretangle = turret.getTargetAngle();
+//        LLResult result = limelight.getLatestResult();
+//        if (result != null && result.isValid()) {
+//            double lastGoodtTx = result.getTx(); // angle from tag camera-relative(from limelight)
+//            turretTarget = turretAngle + targetTurretangle + targetoffset - lastGoodtTx; // Calculates the angle the turret would be at if it were perfectly aligned
+//
+//        } else {
+//            turretTarget = turretFallBackAngle;
+//        }
+        turretTarget = turretFallBackAngle;
         }
-//        turretTarget = turretFallBackAngle;
-    }
 
 
     @Override

@@ -53,7 +53,7 @@ public class TurretRedMk2 extends OpMode {
     private static final double MIN_RPM = 0.0;
     private static final double MAX_RPM = 5800.0;
 
-    private static double MAX_TILT =  0.65;
+    private static double MAX_TILT =  0.75;
     private static final double MIN_TILT = 0;
 
     double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
@@ -72,7 +72,7 @@ public class TurretRedMk2 extends OpMode {
     public static double RPM_AT_1M = 2375;
     public static double RPM_AT_2M = 2725.0;
     public static double RPM_AT_FAR = 3075;
-    public static double TILT_AT_FAR = 0.6;
+    public static double TILT_AT_FAR = 0.75;
     public static double TILT_AT_1M = .34;
     public static double TILT_AT_2M = .55;
     public static double RPM_M, RPM_C, TILT_M, TILT_C;
@@ -88,9 +88,12 @@ public class TurretRedMk2 extends OpMode {
     public double usedRPM;
     public double usedTILT;
     public static double intakeIntakingTargetRPM = 700;
-    public static double intakeShootingTargetRPM = 1000;
+    public static double intakeShootingTargetRPM;
+    public static double intakeFarRPM = 800;
+    public static double intakeCloseRPM = 1100;
     public static double stopperDown = 0.13;
     public static double maxchangescaler = 10;
+    public double lastGoodIntakeRPM;
     public static double stopperUp = 0;
     public double distanceInches;
     public double lastError;
@@ -206,18 +209,21 @@ public class TurretRedMk2 extends OpMode {
 
             double lastGoodDistance = distanceInches;
 
-            if (distanceInches < 100) {
+            if (distanceInches < 105) {
                 // Clamps outputs to motors and servos to the usable pre-set range from our variables before init, and calculates the output RPM and Tilt
                 targetFlywheelRPM = clamp((RPM_M * distanceInches) + RPM_C, MIN_RPM, MAX_RPM);
                 targetHoodTilt = clamp((TILT_M * distanceInches) + TILT_C, MIN_TILT, MAX_TILT);
+                intakeShootingTargetRPM = intakeCloseRPM;
             } else {
                 targetFlywheelRPM = RPM_AT_FAR;
                 targetHoodTilt = TILT_AT_FAR;
+                intakeShootingTargetRPM = intakeFarRPM;
             }
 
             // Caches last good values from the camera, we use these values for controlling our
             // motors and servos so we can avoid any output dropouts if the camera loses good output
             lastGoodHoodTilt = targetHoodTilt;
+            lastGoodIntakeRPM = intakeShootingTargetRPM;
             lastGoodFlywheelRPM = targetFlywheelRPM;
             lastTagTime = System.currentTimeMillis();
         }
@@ -226,7 +232,7 @@ public class TurretRedMk2 extends OpMode {
         turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
         if (launching){
             flywheel.setVelocity(lastGoodFlywheelRPM);
-            intake.setVelocity((intakeShootingTargetRPM*145.1)/60);
+            intake.setVelocity((lastGoodIntakeRPM*145.1)/60);
             rbstop.setPosition(stopperUp);
             rhoodtilt.setPosition(lastGoodHoodTilt);
         } else if (flywheelspin){
@@ -234,7 +240,7 @@ public class TurretRedMk2 extends OpMode {
             rbstop.setPosition(stopperDown);
             rhoodtilt.setPosition(lastGoodHoodTilt);
         } else if (intaking) {
-            intake.setVelocity((intakeIntakingTargetRPM*145.1)/60);
+            intake.setVelocity((lastGoodIntakeRPM*145.1)/60);
             flywheel.setVelocity(0);
             rbstop.setPosition(stopperDown);
             rhoodtilt.setPosition(MIN_TILT);
@@ -243,7 +249,7 @@ public class TurretRedMk2 extends OpMode {
             intake.setVelocity(0);
             rbstop.setPosition(stopperUp);
         } else if (unload) {
-            intake.setVelocity(-intakeShootingTargetRPM);
+            intake.setVelocity(-1000);
             flywheel.setVelocity(-1500);
             rbstop.setPosition(stopperUp);
         } else {
@@ -253,7 +259,7 @@ public class TurretRedMk2 extends OpMode {
         }
 
         if (tagRecentlySeen && !taglastseen){
-            rhoodtilt.setPosition(lastGoodHoodTilt);
+            rhoodtilt.setPosition(0.3);
             prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidGreen);
         } else if (!tagRecentlySeen && taglastseen) {
             rhoodtilt.setPosition(MIN_TILT);

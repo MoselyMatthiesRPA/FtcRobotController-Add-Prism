@@ -17,9 +17,9 @@ public class Turret {
     private double lastOutput = 0.0;
 
     // --- Constants (tune these) ---
-    public static double kP = 0.0145;
+    public static double kP = 0.015;
     public static double kD = 0.001;
-    public static double kF = 0.07;
+    public static double kF = 0.08;
     public static double MAX_ANGLE = 120;
     public static double MIN_ANGLE = -90;
     double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
