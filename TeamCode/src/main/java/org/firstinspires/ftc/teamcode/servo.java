@@ -126,7 +126,7 @@ public class servo extends OpMode {
     public static double turretAcceptableError = 0.5;
     ElapsedTime loopTimer = new ElapsedTime();
     public static double MAX_TAG_AMBIGUITY = 0.7;
-    public static double MAX_TAG_DISTANCE_M = 4.0;
+    public static double MAX_TAG_DISTANCE_M = 1.5;
     // Tune this: minimum displacement (inches) to accept a vision update
 // Prevents jitter when the robot is stationary
     public static double MIN_POSE_JUMP_INCHES = 0.5;
@@ -337,9 +337,9 @@ public class servo extends OpMode {
     @Override
     public void loop() {
         follower.update();
-        updatePoseFromPedro();
         updatePoseFromLimelight();
-//        flywheel.setVelocity(targetFlywheelRPM);
+        updatePoseFromPedro();
+        flywheel.setVelocity(targetFlywheelRPM);
         telemetryM.update();
 
         if (distanceInches < 105)    {
