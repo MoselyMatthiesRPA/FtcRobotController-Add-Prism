@@ -132,6 +132,10 @@ public class servo extends OpMode {
     public static double MIN_POSE_JUMP_INCHES = 0.5;
     public static double MAX_POSE_JUMP_INCHES = 24.0; // reject wild outliers
     public static double LL_HEADING_OFFSET = 90.0; // degrees — tune in Step 2
+    // Reject LL frames captured before the most recent updateRobotOrientation
+    // had time to take effect; otherwise MT2 may return a pose solved with a
+    // stale yaw. ~100 ms is comfortably longer than one Limelight frame.
+    public static double MAX_LL_STALENESS_MS = 100.0;
 
 
     private void updatePoseFromLimelight() {
@@ -141,6 +145,13 @@ public class servo extends OpMode {
         LLResult result = limelight.getLatestResult();
         if (result == null || !result.isValid()) {
             telemetry.addData("LL Status", "No valid result");
+            return;
+        }
+
+        double staleness = result.getStaleness();
+        telemetry.addData("LL Staleness ms", staleness);
+        if (staleness > MAX_LL_STALENESS_MS) {
+            telemetry.addData("LL Rejected", "Stale frame (" + staleness + " ms)");
             return;
         }
 
@@ -298,6 +309,11 @@ public class servo extends OpMode {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.pipelineSwitch(0);
         limelight.start();
+        // Seed the yaw before the first frame is solved; otherwise MT2 may
+        // compute a botpose with the default yaw=0 and we'd see a 180-deg
+        // mirrored position error on the very first reading.
+        limelight.updateRobotOrientation(
+                LimelightHeading.pedroHeadingToLimelightDeg(follower.getPose().getHeading()));
 
         rbstop.setPosition(0);
         rhoodtilt.setPosition(MIN_TILT);
