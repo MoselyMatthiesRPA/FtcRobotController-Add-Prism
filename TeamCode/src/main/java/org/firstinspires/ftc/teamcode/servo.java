@@ -135,7 +135,7 @@ public class servo extends OpMode {
 
 
     private void updatePoseFromLimelight() {
-        double limelightYaw = Math.toDegrees(robotHeading)+90;
+        double limelightYaw = LimelightHeading.pedroHeadingToLimelightDeg(robotHeading);
         limelight.updateRobotOrientation(limelightYaw);
 
         LLResult result = limelight.getLatestResult();
@@ -173,7 +173,7 @@ public class servo extends OpMode {
         telemetry.addData("Tags Seen", fiducials.size());
         telemetry.addData("LL Raw X", botpose.getPosition().x);
         telemetry.addData("LL Raw Y ", botpose.getPosition().y);
-        telemetry.addData("LL Yaw sent", Math.toDegrees(robotHeading) + 90);
+        telemetry.addData("LL Yaw sent", LimelightHeading.pedroHeadingToLimelightDeg(robotHeading));
         telemetry.addData("RAW X m", botpose.getPosition().x);
         telemetry.addData("RAW Y m", botpose.getPosition().y);
         telemetry.addData("RAW Z m", botpose.getPosition().z);
@@ -314,7 +314,7 @@ public class servo extends OpMode {
 
     @Override
     public void start(){
-        double limelightYaw = 90.0 - Math.toDegrees(follower.getPose().getHeading());
+        double limelightYaw = LimelightHeading.pedroHeadingToLimelightDeg(follower.getPose().getHeading());
         limelight.updateRobotOrientation(limelightYaw);
     }
 
