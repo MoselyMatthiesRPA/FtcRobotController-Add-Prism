@@ -11,8 +11,8 @@ public class DualPidMotor {
     private DcMotorEx topFlywheel, bottomFlywheel;
     double targetRPM;
     public static double P = 120;
-    double kf = 0.00542307692307692; // Constant used to create F by multiplying kf by targetRPM, allowing for scalability with different RPMs.
-    double F;
+    double kf = 0.00380387803878049; // Constant used to create F by multiplying kf by targetRPM, allowing for scalability with different RPMs.
+    public double F;
 
     public DualPidMotor(HardwareMap hardwareMap, String TopFlywheelMotorName, String BottomFlywheelMotorName) {
         topFlywheel = hardwareMap.get(DcMotorEx.class, TopFlywheelMotorName);
@@ -21,9 +21,6 @@ public class DualPidMotor {
         topFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         bottomFlywheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         bottomFlywheel.setDirection(DcMotor.Direction.REVERSE);
-        topFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bottomFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
 
         PIDFCoefficients pidfCoefficients = new PIDFCoefficients(P,0,0,F);
         topFlywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);

@@ -23,8 +23,8 @@ import org.firstinspires.ftc.teamcode.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "Blue far zone 9", group = "Competition")
-public class BlueFar9 extends OpMode {
+@Autonomous(name = "Red Far zone 6", group = "Competition")
+public class RedFar6 extends OpMode {
     private Follower follower; // Pedro Pathing follower instance
     private Timer pathTimer;
     ElapsedTime stateTimer = new ElapsedTime();
@@ -36,7 +36,7 @@ public class BlueFar9 extends OpMode {
     DualPidMotor flywheel;
     ElapsedTime loopTimer = new ElapsedTime();
     double dt = 0;
-    public static double turretFallBackAngle = 65.5;
+    public static double turretFallBackAngle = -65.5;
     public static double shootTime = 2200;
     public static double waitTime = 1700;
     public static double classifierTime = 2000;
@@ -47,12 +47,12 @@ public class BlueFar9 extends OpMode {
     public static double hoodUp = 0.75;
     public static double hoodDown = 0.03;
     boolean cameragood;
-    public double turretTarget = 2;
+    public double turretTarget = -2;
     public static double targetoffset = 2;
 
 
     PrismAnimations.RainbowSnakes rainbow = new PrismAnimations.RainbowSnakes();
-    PrismAnimations.Solid solidBlue =new PrismAnimations.Solid(Color.BLUE);
+    PrismAnimations.Solid solidRed =new PrismAnimations.Solid(Color.RED);
     PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
     PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
     PathState pathState;
@@ -73,16 +73,16 @@ public class BlueFar9 extends OpMode {
         LEAVE
     }
 
-    private final Pose startPose = new Pose(49, 7.2, Math.toRadians(180));
-    private final Pose farZoneShootPose = new Pose (58, 16, Math.toRadians(180));
-    private final Pose middleLoadStartPose = new Pose (48, 58, Math.toRadians(180));
-    private final Pose middleLoadEndPose = new Pose (10, 58, Math.toRadians(180));
-    private final Pose farLoadStartPose = new Pose (58, 35, Math.toRadians(180));
-    private final Pose middleLoadControlPose = new Pose (48, 58, Math.toRadians(180));
-    private final Pose farLoadEndPose = new Pose (10, 35, Math.toRadians(180));
-    private final Pose classifierSetup = new Pose (24, 65, Math.toRadians(170));
-    private final Pose classifierEmpty = new Pose (17.75, 71.5, Math.toRadians(170));
-    private final Pose farLeavePose = new Pose (24, 10, Math.toRadians(180));
+    private final Pose startPose = new Pose(95, 7.2, Math.toRadians(0));
+    private final Pose farZoneShootPose = new Pose (86, 16, Math.toRadians(0));
+    private final Pose middleLoadStartPose = new Pose (96, 58, Math.toRadians(0));
+    private final Pose middleLoadEndPose = new Pose (134, 58, Math.toRadians(0));
+    private final Pose farLoadStartPose = new Pose (95, 34, Math.toRadians(0));
+    private final Pose middleLoadControlPose = new Pose (105, 60, Math.toRadians(0));
+    private final Pose farLoadEndPose = new Pose (134, 34, Math.toRadians(0));
+    private final Pose classifierSetup = new Pose (120, 65, Math.toRadians(10));
+    private final Pose classifierEmpty = new Pose (128.25, 71.5, Math.toRadians(10));
+    private final Pose farLeavePose = new Pose (120, 10, Math.toRadians(0));
 
     private PathChain FarStartDriveFarShoot, FarShootDriveMiddleLoad, MiddleLoad, DriveMiddleLoadClassifierSetup, ClassifierEmpty, DriveClassifierEmptyFarShoot, DriveFarShootFarLoad, FarLoad, DriveFarLoadFarShoot, FarShootLeave;
     public void buildPaths() {
@@ -130,7 +130,7 @@ public class BlueFar9 extends OpMode {
     public void statePathUpdate(){
         switch(pathState){
             case START:
-                follower.followPath(FarStartDriveFarShoot, 0.7, true);
+                follower.followPath(FarStartDriveFarShoot, 0.6, true);
                 flywheel.setVelocity(3075);
                 rhoodtilt.setPosition(hoodUp);
                 stateTimer.reset();
@@ -139,8 +139,7 @@ public class BlueFar9 extends OpMode {
 
             case DRIVE_FARSTARTPOS_FARSHOOTPOS:
                 turret.setTargetAngle(turretTarget);
-//                if (follower.atPose(farZoneShootPose, 2,2, 1)) {
-                if (!follower.isBusy()){
+                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
                     if (stateTimer.milliseconds() > waitTime) {
                         stateTimer.reset();
                         setPathState(PathState.FARSHOOT1);
@@ -155,73 +154,15 @@ public class BlueFar9 extends OpMode {
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-                    rhoodtilt.setPosition(hoodDown);
                     turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
-                    follower.followPath(FarShootDriveMiddleLoad);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_FARSHOOTPOS_MIDDLELOAD);
-                }
-
-                break;
-            case DRIVE_FARSHOOTPOS_MIDDLELOAD:
-                if (!follower.isBusy()){
-                    follower.followPath(MiddleLoad, 0.5, false);
-                    intake.setVelocity((intakingRPM * 145.1)/60);
-                    stateTimer.reset();
-                    setPathState(PathState.MIDDLELOAD);
-                }
-                break;
-            case MIDDLELOAD:
-                if (!follower.isBusy()){
-                    intake.setVelocity(0);
-                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.7, false);
-                    stateTimer.reset();
-                    setPathState(PathState.CLASSIFIERSETUP);
-                }
-                break;
-            case CLASSIFIERSETUP:
-//                if (follower.atPose(classifierSetup, 1, 1, 0.5)){
-                if (!follower.isBusy()){
-                    follower.followPath(ClassifierEmpty, 0.7, true);
-                    stateTimer.reset();
-                    setPathState(PathState.CLASSIFIEREMPTY);
-                }
-                break;
-            case CLASSIFIEREMPTY:
-                if (!follower.isBusy()) {
-                    if (stateTimer.milliseconds() > classifierTime) {
-                        follower.followPath(DriveClassifierEmptyFarShoot, 1, true);
-                        stateTimer.reset();
-                        setPathState(PathState.DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS);
-                    }
-                }
-                break;
-            case DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3075);
-                rhoodtilt.setPosition(hoodUp);
-                turret.setTargetAngle(turretFallBackAngle);
-//                if (follower.atPose(farZoneShootPose, 1,1, 0.5)) {
-                if (!follower.isBusy()){
-                    stateTimer.reset();
-                    setPathState(PathState.FARSHOOT2);
-                }
-                break;
-            case FARSHOOT2:
-                if (stateTimer.milliseconds() < shootTime){
-                    rbstop.setPosition(stopperUp);
-                    intake.setVelocity((intakeShootRPM * 145.1)/60);
-                } else if (stateTimer.milliseconds() > shootTime){
-                    intake.setVelocity(0);
-                    rbstop.setPosition(stopperDown);
-                    rhoodtilt.setPosition(hoodDown);
-                    turret.setTargetAngle(0);
-                    flywheel.setVelocity(0);
-                    follower.followPath(DriveFarShootFarLoad, true);
+                    follower.followPath(DriveFarShootFarLoad);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_FARSHOOTPOS_FARLOADSTARTPOS);
                 }
+
                 break;
+
             case DRIVE_FARSHOOTPOS_FARLOADSTARTPOS:
                 if (!follower.isBusy()){
                     follower.followPath(FarLoad, 0.5, true);
@@ -240,10 +181,8 @@ public class BlueFar9 extends OpMode {
                 break;
             case DRIVE_FARLOADENDPOS_FARSHOOTPOS:
                 flywheel.setVelocity(3075);
-                rhoodtilt.setPosition(hoodUp);
                 turret.setTargetAngle(turretFallBackAngle);
-//                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
-                if (!follower.isBusy()){
+                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
                     stateTimer.reset();
                     setPathState(PathState.FARSHOOT3);
                 }
@@ -254,7 +193,6 @@ public class BlueFar9 extends OpMode {
                     intake.setVelocity((intakeShootRPM * 145.1)/60);
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
-                    rhoodtilt.setPosition(0);
                     rbstop.setPosition(stopperDown);
                     turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
@@ -296,9 +234,9 @@ public class BlueFar9 extends OpMode {
         rbstop.setPosition(stopperUp);
         rhoodtilt.setPosition(hoodDown);
 
-        solidBlue.setBrightness(100);
-        solidBlue.setStartIndex(0);
-        solidBlue.setStopIndex(36);
+        solidRed.setBrightness(100);
+        solidRed.setStartIndex(0);
+        solidRed.setStopIndex(36);
 
         solidPink.setBrightness(100);
         solidPink.setStartIndex(0);
@@ -309,7 +247,7 @@ public class BlueFar9 extends OpMode {
         rainbow.setSpacingBetween(2);
         rainbow.setSpeed(0.6f);
 
-        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidBlue);
+        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidRed);
         follower.setStartingPose(startPose);
         buildPaths();
     }

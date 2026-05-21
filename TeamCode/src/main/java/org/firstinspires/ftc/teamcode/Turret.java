@@ -16,18 +16,16 @@ public class Turret {
     private double lastError = 0.0;
     private double lastOutput = 0.0;
 
-    // --- Constants (tune these) ---
-    public static double kP = 0.015;
-    public static double kD = 0.001;
-    public static double kF = 0.08;
-    public static double MAX_ANGLE = 120;
-    public static double MIN_ANGLE = -90;
-    double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
-
-    public static double maxPower = 1;
-    public static double turretAcceptableError = 0.5;
-    public static double maxChange = 0.05;
-    public static double maxchangescaler = 5.0;
+    // --- Constants ---
+    public static double kP = 0.03;
+    public static double kD = 0.0008;
+    public static double kF = 0.043;
+    public static double MAX_ANGLE = 140;
+    public static double MIN_ANGLE = -160;
+    public static double errorDeadband = 0.18;
+    double ticksPerTurretRev = 145.1 * (110.0/20.0);
+    private double lastAngle = 0;
+    public double derivative = 0;
     public double output;
 
     public Turret(HardwareMap hardwareMap, boolean resetEncoder) {
@@ -35,15 +33,11 @@ public class Turret {
         if (resetEncoder) {
             turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         }
-        turretMotor.setDirection(DcMotorEx.Direction.REVERSE);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
+    // PUBLIC METHODS
 
-
-    // ===============================
-    // PUBLIC METHODS (used by OpMode)
-    // ===============================
 
     public void setTargetAngle(double baseTarget) {
         this.targetAngleDeg = baseTarget;
@@ -91,43 +85,28 @@ public class Turret {
 
         double error = bestError;
 
-        // ---- PID ----
-        double derivative = (error - lastError) / dt;
-        output = kP * error + kD * derivative;
+        // ---- PD Controller ----
+        double velocity = (currentAngleDeg - lastAngle) / dt;
+        derivative = -velocity;
+        lastAngle = currentAngleDeg;
+
+        // Check if we're outside the deadband
+        if (Math.abs(error) > errorDeadband) {
+            // PD + Feedforward
+            output = kP * error + kD * derivative + Math.signum(error) * kF;
+        } else {
+            // Within deadband - stop
+            output = 0;
+        }
 
         lastError = error;
-
-        if (Math.abs(error) > turretAcceptableError) {
-            output += Math.signum(error) * kF;
-        }
-
-        // Clamp max torque
-        output = Math.max(-maxPower, Math.min(maxPower, output));
-
-        // ---- Slew rate limiting ----
-        double absError = Math.abs(error);
-
-        double maxChangeActive;
-        if (absError < 5) {
-            maxChangeActive = maxChange * maxchangescaler;
-        } else {
-            maxChangeActive = maxChange;
-        }
-
-        double delta = output - lastOutput;
-
-        if (delta > maxChangeActive) delta = maxChangeActive;
-        if (delta < -maxChangeActive) delta = -maxChangeActive;
-
-        output = lastOutput + delta;
         lastOutput = output;
 
         turretMotor.setPower(output);
     }
 
-    // ===============================
     // PRIVATE METHODS
-    // ===============================
+
 
     private double getAngleFromEncoder() {
         // Replace with your ticks → degrees conversion

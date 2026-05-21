@@ -78,7 +78,7 @@ public class RedFar9 extends OpMode {
     private final Pose middleLoadStartPose = new Pose (96, 58, Math.toRadians(0));
     private final Pose middleLoadEndPose = new Pose (134, 58, Math.toRadians(0));
     private final Pose farLoadStartPose = new Pose (95, 34, Math.toRadians(0));
-    private final Pose middleLoadControlPose = new Pose (105, 60, Math.toRadians(0));
+    private final Pose middleLoadControlPose = new Pose (80, 71.5, Math.toRadians(0));
     private final Pose farLoadEndPose = new Pose (134, 34, Math.toRadians(0));
     private final Pose classifierSetup = new Pose (120, 65, Math.toRadians(10));
     private final Pose classifierEmpty = new Pose (128.25, 71.5, Math.toRadians(10));
@@ -131,7 +131,7 @@ public class RedFar9 extends OpMode {
         switch(pathState){
             case START:
                 follower.followPath(FarStartDriveFarShoot, 0.6, true);
-                flywheel.setVelocity(3175);
+                flywheel.setVelocity(3075);
                 rhoodtilt.setPosition(hoodUp);
                 stateTimer.reset();
                 setPathState(PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS);
@@ -139,7 +139,8 @@ public class RedFar9 extends OpMode {
 
             case DRIVE_FARSTARTPOS_FARSHOOTPOS:
                 turret.setTargetAngle(turretTarget);
-                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+//                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()){
                     if (stateTimer.milliseconds() > waitTime) {
                         stateTimer.reset();
                         setPathState(PathState.FARSHOOT1);
@@ -179,7 +180,8 @@ public class RedFar9 extends OpMode {
                 }
                 break;
             case CLASSIFIERSETUP:
-                if (follower.atPose(classifierSetup, 1, 1, 0.5)){
+//                if (follower.atPose(classifierSetup, 1, 1, 0.5)){
+                if (!follower.isBusy()){
                     follower.followPath(ClassifierEmpty, 0.7, true);
                     stateTimer.reset();
                     setPathState(PathState.CLASSIFIEREMPTY);
@@ -195,9 +197,10 @@ public class RedFar9 extends OpMode {
                 }
                 break;
             case DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3175);
+                flywheel.setVelocity(3075);
                 turret.setTargetAngle(turretFallBackAngle);
-                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+//                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()){
                         stateTimer.reset();
                         setPathState(PathState.FARSHOOT2);
                     }
@@ -233,9 +236,10 @@ public class RedFar9 extends OpMode {
                 }
                 break;
             case DRIVE_FARLOADENDPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3175);
+                flywheel.setVelocity(3075);
                 turret.setTargetAngle(turretFallBackAngle);
-                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+//                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()){
                     stateTimer.reset();
                     setPathState(PathState.FARSHOOT3);
                 }

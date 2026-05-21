@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.Autos;
 
+import static java.lang.Thread.sleep;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -23,8 +25,8 @@ import org.firstinspires.ftc.teamcode.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "Blue far zone 9", group = "Competition")
-public class BlueFar9 extends OpMode {
+@Autonomous(name = "Revamped", group = "Competition")
+public class RevampedAuto extends OpMode {
     private Follower follower; // Pedro Pathing follower instance
     private Timer pathTimer;
     ElapsedTime stateTimer = new ElapsedTime();
@@ -130,17 +132,19 @@ public class BlueFar9 extends OpMode {
     public void statePathUpdate(){
         switch(pathState){
             case START:
-                follower.followPath(FarStartDriveFarShoot, 0.7, true);
-                flywheel.setVelocity(3075);
-                rhoodtilt.setPosition(hoodUp);
-                stateTimer.reset();
-                setPathState(PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS);
+                if (stateTimer.milliseconds() > 20000) {
+                    follower.followPath(FarStartDriveFarShoot, 0.7, true);
+                    flywheel.setVelocity(3175);
+                    rhoodtilt.setPosition(hoodUp);
+                    stateTimer.reset();
+                    setPathState(PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS);
+                }
                 break;
 
             case DRIVE_FARSTARTPOS_FARSHOOTPOS:
                 turret.setTargetAngle(turretTarget);
-//                if (follower.atPose(farZoneShootPose, 2,2, 1)) {
-                if (!follower.isBusy()){
+                if (follower.atPose(farZoneShootPose, 2,2, 1)) {
+//                if (!follower.isBusy()){
                     if (stateTimer.milliseconds() > waitTime) {
                         stateTimer.reset();
                         setPathState(PathState.FARSHOOT1);
@@ -158,114 +162,15 @@ public class BlueFar9 extends OpMode {
                     rhoodtilt.setPosition(hoodDown);
                     turret.setTargetAngle(0);
                     flywheel.setVelocity(0);
-                    follower.followPath(FarShootDriveMiddleLoad);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_FARSHOOTPOS_MIDDLELOAD);
-                }
-
-                break;
-            case DRIVE_FARSHOOTPOS_MIDDLELOAD:
-                if (!follower.isBusy()){
-                    follower.followPath(MiddleLoad, 0.5, false);
-                    intake.setVelocity((intakingRPM * 145.1)/60);
-                    stateTimer.reset();
-                    setPathState(PathState.MIDDLELOAD);
-                }
-                break;
-            case MIDDLELOAD:
-                if (!follower.isBusy()){
-                    intake.setVelocity(0);
-                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.7, false);
-                    stateTimer.reset();
-                    setPathState(PathState.CLASSIFIERSETUP);
-                }
-                break;
-            case CLASSIFIERSETUP:
-//                if (follower.atPose(classifierSetup, 1, 1, 0.5)){
-                if (!follower.isBusy()){
-                    follower.followPath(ClassifierEmpty, 0.7, true);
-                    stateTimer.reset();
-                    setPathState(PathState.CLASSIFIEREMPTY);
-                }
-                break;
-            case CLASSIFIEREMPTY:
-                if (!follower.isBusy()) {
-                    if (stateTimer.milliseconds() > classifierTime) {
-                        follower.followPath(DriveClassifierEmptyFarShoot, 1, true);
-                        stateTimer.reset();
-                        setPathState(PathState.DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS);
-                    }
-                }
-                break;
-            case DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3075);
-                rhoodtilt.setPosition(hoodUp);
-                turret.setTargetAngle(turretFallBackAngle);
-//                if (follower.atPose(farZoneShootPose, 1,1, 0.5)) {
-                if (!follower.isBusy()){
-                    stateTimer.reset();
-                    setPathState(PathState.FARSHOOT2);
-                }
-                break;
-            case FARSHOOT2:
-                if (stateTimer.milliseconds() < shootTime){
-                    rbstop.setPosition(stopperUp);
-                    intake.setVelocity((intakeShootRPM * 145.1)/60);
-                } else if (stateTimer.milliseconds() > shootTime){
-                    intake.setVelocity(0);
-                    rbstop.setPosition(stopperDown);
-                    rhoodtilt.setPosition(hoodDown);
-                    turret.setTargetAngle(0);
-                    flywheel.setVelocity(0);
-                    follower.followPath(DriveFarShootFarLoad, true);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_FARSHOOTPOS_FARLOADSTARTPOS);
-                }
-                break;
-            case DRIVE_FARSHOOTPOS_FARLOADSTARTPOS:
-                if (!follower.isBusy()){
-                    follower.followPath(FarLoad, 0.5, true);
-                    intake.setVelocity((intakingRPM * 145.1)/60);
-                    stateTimer.reset();
-                    setPathState(PathState.FARLOAD);
-                }
-                break;
-            case FARLOAD:
-                if (!follower.isBusy()){
-                    intake.setVelocity(0);
-                    follower.followPath(DriveFarLoadFarShoot, true);
-                    stateTimer.reset();
-                    setPathState(PathState.DRIVE_FARLOADENDPOS_FARSHOOTPOS);
-                }
-                break;
-            case DRIVE_FARLOADENDPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3075);
-                rhoodtilt.setPosition(hoodUp);
-                turret.setTargetAngle(turretFallBackAngle);
-//                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
-                if (!follower.isBusy()){
-                    stateTimer.reset();
-                    setPathState(PathState.FARSHOOT3);
-                }
-                break;
-            case FARSHOOT3:
-                if (stateTimer.milliseconds() < shootTime){
-                    rbstop.setPosition(stopperUp);
-                    intake.setVelocity((intakeShootRPM * 145.1)/60);
-                } else if (stateTimer.milliseconds() > shootTime){
-                    intake.setVelocity(0);
-                    rhoodtilt.setPosition(0);
-                    rbstop.setPosition(stopperDown);
-                    turret.setTargetAngle(0);
-                    flywheel.setVelocity(0);
-                    follower.followPath(FarShootLeave, true);
+                    follower.followPath(FarShootLeave);
                     stateTimer.reset();
                     setPathState(PathState.LEAVE);
                 }
+
                 break;
             case LEAVE:
                 if (!follower.isBusy()){
-                    prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidGreen);
+                    prism.clearAllAnimations();
                 }
             default:
                 break;
@@ -315,11 +220,11 @@ public class BlueFar9 extends OpMode {
     }
 
     public void start() {
-        setPathState(PathState.START);
         rbstop.setPosition(stopperDown);
         turret.setTargetAngle(turretFallBackAngle);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
         stateTimer.reset();
+        setPathState(PathState.START);
     }
 
     @Override
@@ -352,3 +257,4 @@ public class BlueFar9 extends OpMode {
     }
 
 }
+

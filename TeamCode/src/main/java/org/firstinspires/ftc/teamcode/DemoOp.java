@@ -21,9 +21,9 @@ import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
 
 @Configurable
-@TeleOp(name = "turret red Mk2", group = "Competition")
+@TeleOp(name = "DemoOp", group = "Competition")
 
-public class TurretRedMk2 extends OpMode {
+public class DemoOp extends OpMode {
     DcMotorEx intake;
     Turret turret;
     DcMotor frontLeft, frontRight, backLeft, backRight;
@@ -54,7 +54,7 @@ public class TurretRedMk2 extends OpMode {
     private static final double MAX_RPM = 5800.0;
 
     private static double MAX_TILT =  0.75;
-    private static final double MIN_TILT = 0.02;
+    private static final double MIN_TILT = 0;
 
     double ticksPerTurretRev = 537.7 * (200.0 / 87.0);
     private static final double INCHES_PER_METER = 39.3701;
@@ -129,12 +129,12 @@ public class TurretRedMk2 extends OpMode {
         rbstop = hardwareMap.get(Servo.class, "rbstop");
         rhoodtilt = hardwareMap.get(Servo.class, "rhoodtilt");
         flywheel = new DualPidMotor (hardwareMap, "topflywheel", "bottomflywheel");
-        turret = new Turret(hardwareMap, false);
+        turret = new Turret(hardwareMap, true);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
-        limelight.pipelineSwitch(1); // Switch to pipeline number 1
+        limelight.pipelineSwitch(2); // Switch to pipeline number 1
 
         solidGreen.setBrightness(100);
         solidGreen.setStartIndex(0);
@@ -149,11 +149,12 @@ public class TurretRedMk2 extends OpMode {
         solidRed.setStopIndex(36);
 
         override = false;
-
+        rbstop.setPosition(0);
+        rhoodtilt.setPosition(MIN_TILT);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidRed);
 
         List<LynxModule> allHubs;
-            allHubs = hardwareMap.getAll(LynxModule.class);
+        allHubs = hardwareMap.getAll(LynxModule.class);
 
         for (LynxModule hub : allHubs) {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
@@ -162,14 +163,11 @@ public class TurretRedMk2 extends OpMode {
 
     @Override
     public void start(){
-        rbstop.setPosition(0);
-        rhoodtilt.setPosition(MIN_TILT);
         limelight.start();
     }
 
     @Override
     public void loop() {
-
         double dt = loopTimer.seconds();
         loopTimer.reset();
 
@@ -188,17 +186,17 @@ public class TurretRedMk2 extends OpMode {
 
         boolean tagRecentlySeen = System.currentTimeMillis() - lastTagTime < TAG_TIMEOUT_MS; // Checks to see if the Limelight has seen the apriltag, goes false after the Limelight hasnt seen anything longer than TAG_TIMEOUT_MS
         boolean trackingready = (tagRecentlySeen || override); // Senses whether or not the tracking system(includes override) is ready, used to failsafe our flywheel
-        boolean intaking = (gamepad2.left_trigger > 0.5) && !(gamepad2.right_trigger > 0.5); // Just used to see if we are currently intaking and the flywheel isnt being powered (Mainly for LEDs)
-        boolean flywheelspin = ((gamepad2.right_trigger > 0.5) && !(intaking) && trackingready);
-        boolean spinningup = ((gamepad2.right_trigger > 0.5) && (flywheel.getCurrentRPM()) < lastGoodFlywheelRPM - 100);
+        boolean intaking = (gamepad2.left_trigger > 0.2) && !(gamepad2.right_trigger > 0.2); // Just used to see if we are currently intaking and the flywheel isnt being powered (Mainly for LEDs)
+        boolean flywheelspin = ((gamepad2.right_trigger > 0.2) && !(intaking) && trackingready);
+        boolean spinningup = ((gamepad2.right_trigger > 0.2) && (flywheel.getCurrentRPM()) < lastGoodFlywheelRPM - 100);
         boolean goodforlaunch = ((trackingready)); // Checks if our flywheel is close enough to target speed and is targeted
-        boolean launching = (gamepad2.right_trigger > 0.5) && (gamepad2.left_trigger > 0.5) && (goodforlaunch); // pretty much only used for our LEDs
+        boolean launching = (gamepad2.right_trigger > 0.2) && (gamepad2.left_trigger > 0.2) && (goodforlaunch); // pretty much only used for our LEDs
         boolean unjam = (gamepad2.b); // Only spins the flywheel in reverse
         boolean unload = (gamepad2.x); // Spins flywheel in reverse as well as the intake
         boolean totaloverride = (gamepad2.y); // Used for if our turret rotation breaks or just jams really badly, reverts camera rotation back to the old setup where we rotate the whole bot so that we can still camera-based aim
         boolean turretzero = (gamepad2.a); // Brings turret back to the 0 point
-        boolean jammed = ((gamepad2.right_trigger > 0.5) && ((flywheel.getCurrentRPM() < 50) && Math.abs(lastGoodFlywheelRPM) > 1000) && !unjam && !unload); // Primitive jamming function, just senses for whether or not the flywheel is trying to spin but isnt.
-        boolean turretjoystick = ((magnitude > 0.8));
+        boolean jammed = ((gamepad2.right_trigger > 0.2) && ((flywheel.getCurrentRPM() < 50) && Math.abs(lastGoodFlywheelRPM) > 1000) && !unjam && !unload); // Primitive jamming function, just senses for whether or not the flywheel is trying to spin but isnt.
+        boolean turretjoystick = ((magnitude > 0.8) || override);
         boolean turretcamera = (!turretjoystick && tagRecentlySeen);
 
         // This whole if (result != null && result.isValid) function does not directly control anything, just calibrates our RPM model, caches those valuses, and updates the lastTagTime(used for our tagRecentlySeen Boolean)
@@ -229,7 +227,7 @@ public class TurretRedMk2 extends OpMode {
             lastGoodFlywheelRPM = targetFlywheelRPM;
             lastTagTime = System.currentTimeMillis();
         }
-            // we nest our turret controls inside of the !totaloverride so that if we run totaloverride and aim the bot with the drivetrain, we can easily lock the turret in place
+        // we nest our turret controls inside of the !totaloverride so that if we run totaloverride and aim the bot with the drivetrain, we can easily lock the turret in place
 
         turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
         if (launching){
@@ -242,7 +240,7 @@ public class TurretRedMk2 extends OpMode {
             rbstop.setPosition(stopperDown);
             rhoodtilt.setPosition(lastGoodHoodTilt);
         } else if (intaking) {
-            intake.setVelocity((intakeIntakingTargetRPM*145.1)/60);
+            intake.setVelocity((lastGoodIntakeRPM*145.1)/60);
             flywheel.setVelocity(0);
             rbstop.setPosition(stopperDown);
             rhoodtilt.setPosition(MIN_TILT);
@@ -274,8 +272,11 @@ public class TurretRedMk2 extends OpMode {
         if (!totaloverride) {
             // Real meat and potatoes of our logic here. Takes the values from our camera, booleans, and controls and turns them into actual actions.
             if (turretjoystick) { // Runs turret off of joystick if magnitude of joystick exceeds 0.8.
-
-                    baseTarget = Math.toDegrees(Math.atan2(cx, cy)); // calculates target turret angle robot-centric based off of joystick angle
+                if (!turretzero) {
+                    baseTarget = Math.toDegrees(Math.atan2(cx, cy));
+                } else if (turretzero){
+                    baseTarget = 0;
+                }
 
                 if (!override) {
                     lastGoodFlywheelRPM = targetFlywheelRPM;
@@ -284,75 +285,82 @@ public class TurretRedMk2 extends OpMode {
                     lastGoodFlywheelRPM = RPM_AT_1M;
                     lastGoodHoodTilt = TILT_AT_1M;
                 }
+                // most of this code advancement is needless and unnecessary as of right now, but when we lengthen our cables out it will allow 360 tracking of the turret with minimal code changes, just changes to the software limits of the turret rotation.
+                // This works by creating rotation values +- 360 degrees from the target's orientation from the robot and choosing the closest pathway that is within the limits of our turret.
 
-            } else if (turretcamera) { // Runs turret rotation off of the camera if the joystick isnt significantly pressed in any direction and a tag is seen.
-                    baseTarget = turretAngle + targetTurretangle - lastGoodtTx; // Calculates the angle relative to the robot that the turret would be at if it were perfectly aligned
+            } else if (turretcamera) { // Runs off of the camera if the joystick isnt significantly pressed in any direction and a tag is seen.
+                if (!turretzero) {
+                    baseTarget = turretAngle + targetTurretangle - lastGoodtTx; // Calculates the angle the turret would be at if it were perfectly aligned
+                } else {
+                    baseTarget = 0;
+                }
+
             }
-            lastBaseTarget = baseTarget; // caches values to prevent dropouts
+            lastBaseTarget = baseTarget;
         }
 
-            telemetry.addData("current angle", turretAngle);
-            telemetry.addData("target angle", turret.getTargetAngle());
-            telemetry.addData("output", turret.getOutput());
-            telemetry.addData("override", override);
-            telemetry.addData("total override", totaloverride);
-            telemetry.addData("tracking ready", trackingready);
-            telemetry.addData("intaking", intaking);
-            telemetry.addData("jammed", jammed);
-            telemetry.addData("unjam", unjam);
-            telemetry.addData("unload", unload);
-            telemetry.addData("goodforlaunch", goodforlaunch);
-            telemetry.addData("current flywheel RPM", flywheel.getCurrentRPM());
-            telemetry.addData("target RPM", lastGoodFlywheelRPM);
-            telemetry.addData("targethoodtilt", lastGoodHoodTilt);
-            telemetry.addData("spinning up", spinningup);
-            telemetry.addData("spinning", flywheelspin);
-            telemetry.addData("launching", launching);
-            telemetry.addData("distance from tag", distanceInches);
-            telemetry.addData("Loop Time (ms)", dt * 1000);
-            telemetry.addData("Loop Hz", 1.0 / dt);
-            telemetry.update();
+        telemetry.addData("current angle", turretAngle);
+        telemetry.addData("target angle", turret.getTargetAngle());
+        telemetry.addData("output", turret.getOutput());
+        telemetry.addData("override", override);
+        telemetry.addData("total override", totaloverride);
+        telemetry.addData("tracking ready", trackingready);
+        telemetry.addData("intaking", intaking);
+        telemetry.addData("jammed", jammed);
+        telemetry.addData("unjam", unjam);
+        telemetry.addData("unload", unload);
+        telemetry.addData("goodforlaunch", goodforlaunch);
+        telemetry.addData("current flywheel RPM", flywheel.getCurrentRPM());
+        telemetry.addData("target RPM", lastGoodFlywheelRPM);
+        telemetry.addData("targethoodtilt", lastGoodHoodTilt);
+        telemetry.addData("spinning up", spinningup);
+        telemetry.addData("spinning", flywheelspin);
+        telemetry.addData("launching", launching);
+        telemetry.addData("distance from tag", distanceInches);
+        telemetry.addData("Loop Time (ms)", dt * 1000);
+        telemetry.addData("Loop Hz", 1.0 / dt);
+        telemetry.update();
 
         turret.setTargetAngle(baseTarget);
         turret.update(dt);
 
         // totaloverride basically changes tracking to rotating the whole robot to the apriltag, as we did before
-//            if (totaloverride && gamepad1.left_bumper && tagRecentlySeen) {
-//                    baseTarget = lastBaseTarget;
-//                    double TARGET_YAW = 0.8;
-//                    double ERROR_YAW = (TARGET_YAW - lastGoodtTx);
-//                    rx = (ERROR_YAW * kP) * kF;
-//            } else {
-                rx = gamepad1.right_stick_x;
-//            }
-
-// Reads joystick values for our Mecanum logic
-            double y = -gamepad1.left_stick_y;  // Forward is positive
-            double x = gamepad1.left_stick_x;  // Strafe
-
-// Mecanum mixing
-            double frontLeftPower = y + x + (0.8 * rx);
-            double backLeftPower = y - x + (0.8 * rx);
-            double frontRightPower = y - x - (0.8 * rx);
-            double backRightPower = y + x - (0.8 * rx);
-
-// Normalize powers so no value exceeds 1.0
-            double max = Math.max(
-                    Math.max(Math.abs(frontLeftPower), Math.abs(backLeftPower)),
-                    Math.max(Math.abs(frontRightPower), Math.abs(backRightPower)));
-
-            if (max > 1.0) {
-                frontLeftPower /= max;
-                backLeftPower /= max;
-                frontRightPower /= max;
-                backRightPower /= max;
-            }
-
-// Send power to motors
-            frontLeft.setPower(frontLeftPower);
-            backLeft.setPower(backLeftPower);
-            frontRight.setPower(frontRightPower);
-            backRight.setPower(backRightPower);
-
+//        if (totaloverride && gamepad1.left_bumper && tagRecentlySeen) {
+//            baseTarget = lastBaseTarget;
+//            double TARGET_YAW = 0.8;
+//            double ERROR_YAW = (TARGET_YAW - lastGoodtTx);
+//            rx = (ERROR_YAW * kP) * kF;
+//        } else {
+//            rx = gamepad1.right_stick_x;
+//        }
+//
+//// Reads joystick values for our Mecanum logic
+//        double y = -gamepad1.left_stick_y;  // Forward is positive
+//        double x = gamepad1.left_stick_x;  // Strafe
+//
+//// Mecanum mixing
+//        double frontLeftPower = y + x + (0.8 * rx);
+//        double backLeftPower = y - x + (0.8 * rx);
+//        double frontRightPower = y - x - (0.8 * rx);
+//        double backRightPower = y + x - (0.8 * rx);
+//
+//// Normalize powers so no value exceeds 1.0
+//        double max = Math.max(
+//                Math.max(Math.abs(frontLeftPower), Math.abs(backLeftPower)),
+//                Math.max(Math.abs(frontRightPower), Math.abs(backRightPower)));
+//
+//        if (max > 1.0) {
+//            frontLeftPower /= max;
+//            backLeftPower /= max;
+//            frontRightPower /= max;
+//            backRightPower /= max;
+//        }
+//
+//// Send power to motors
+//        frontLeft.setPower(frontLeftPower);
+//        backLeft.setPower(backLeftPower);
+//        frontRight.setPower(frontRightPower);
+//        backRight.setPower(backRightPower);
+//
     }
 }
