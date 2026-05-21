@@ -24,6 +24,9 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.PedroCoordinates;
+import com.pedropathing.ftc.PoseConverter;
+import com.pedropathing.ftc.InvertedFTCCoordinates;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import androidx.annotation.Nullable;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
@@ -167,14 +170,20 @@ public class servo extends OpMode {
             return;
         }
 
-        // Limelight gives FTC standard coords: center-origin, meters, CCW positive
-        // Pedro needs: bottom-left origin, inches, CCW positive
-        // FTC field is 144x144in, so center = (72, 72) in Pedro coords
-        double pedroX = (-botpose.getPosition().toUnit(DistanceUnit.INCH).y) + 72.0;
-        double pedroY = (botpose.getPosition().toUnit(DistanceUnit.INCH).x) + 72.0;
-        double pedroHeadingRad = Math.toRadians(botpose.getOrientation().getYaw(AngleUnit.DEGREES)
-        );
-        // Note: no negation needed if Limelight and Pedro both use CCW positive
+        // Delegate the LL (FTC-standard, center origin, meters) -> Pedro
+        // (bottom-left origin, inches) conversion to Pedro's PoseConverter so
+        // we don't hand-roll signs/axes for DECODE. The Pedro docs explicitly
+        // pair MT2 botpose with InvertedFTCCoordinates for this field.
+        Pose2D ftcPose2D = new Pose2D(
+                DistanceUnit.INCH,
+                botpose.getPosition().toUnit(DistanceUnit.INCH).x,
+                botpose.getPosition().toUnit(DistanceUnit.INCH).y,
+                AngleUnit.RADIANS,
+                Math.toRadians(botpose.getOrientation().getYaw(AngleUnit.DEGREES)));
+        Pose ftcStandard = PoseConverter.pose2DToPose(ftcPose2D, InvertedFTCCoordinates.INSTANCE);
+        Pose llPedroPose = ftcStandard.getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+        double pedroX = llPedroPose.getX();
+        double pedroY = llPedroPose.getY();
 
         // Log before filters
         telemetry.addData("LL Pedro X", pedroX);
