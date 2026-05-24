@@ -17,10 +17,17 @@ public final class LimelightHeading {
     }
 
     public static double pedroHeadingToLimelightDeg(double pedroHeadingRad) {
-        return normalizeDeg(Math.toDegrees(pedroHeadingRad) + 90.0);
+        double deg = Math.toDegrees(pedroHeadingRad) + 90.0;
+        // Normalize to -180 to +180, matching FTC IMU convention
+        while (deg > 180) deg -= 360;
+        while (deg < -180) deg += 360;
+        return deg;
     }
 
     public static double limelightDegToPedroHeadingRad(double limelightDeg) {
-        return Math.toRadians(normalizeDeg(limelightDeg - 90.0));
+        double deg = limelightDeg - 90.0;
+        while (deg > 180) deg -= 360;
+        while (deg < -180) deg += 360;
+        return Math.toRadians(deg);
     }
 }

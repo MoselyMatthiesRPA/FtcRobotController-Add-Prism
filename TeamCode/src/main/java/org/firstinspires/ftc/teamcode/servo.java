@@ -60,6 +60,7 @@ public class servo extends OpMode {
     PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
     PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
     PrismAnimations.Solid solidRed = new PrismAnimations.Solid(Color.RED);
+
     public double targetAngle;
     public double turretAngle;
     public double output;
@@ -136,86 +137,58 @@ public class servo extends OpMode {
     // had time to take effect; otherwise MT2 may return a pose solved with a
     // stale yaw. ~100 ms is comfortably longer than one Limelight frame.
     public static double MAX_LL_STALENESS_MS = 100.0;
+    private boolean relocalized = false;
+    private boolean lastRelocalized = false;
 
+    private double lastValidPedroX = 0;
+    private double lastValidPedroY = 0;
 
-    private void updatePoseFromLimelight() {
+    private void checkLimelight() {
+        relocalized = false;
+        limelightHasValidRead = false;
+
         double limelightYaw = LimelightHeading.pedroHeadingToLimelightDeg(robotHeading);
         limelight.updateRobotOrientation(limelightYaw);
 
         LLResult result = limelight.getLatestResult();
-        if (result == null || !result.isValid()) {
-            telemetry.addData("LL Status", "No valid result");
-            return;
-        }
-
-        double staleness = result.getStaleness();
-        telemetry.addData("LL Staleness ms", staleness);
-        if (staleness > MAX_LL_STALENESS_MS) {
-            telemetry.addData("LL Rejected", "Stale frame (" + staleness + " ms)");
-            return;
-        }
+        if (result == null || !result.isValid()) return;
+        if (result.getStaleness() > MAX_LL_STALENESS_MS) return;
 
         Pose3D botpose = result.getBotpose_MT2();
-        if (botpose == null) {
-            telemetry.addData("LL Status", "No botpose");
-            return;
-        }
+        if (botpose == null) return;
 
         List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
-        if (fiducials == null || fiducials.isEmpty()) {
-            telemetry.addData("LL Status", "No fiducials");
-            return;
-        }
+        if (fiducials == null || fiducials.isEmpty()) return;
 
-        // LL botpose is FTC standard: meters, center origin, +X toward
-        // audience, +Y red->blue. Pedro is inches, bottom-left origin, with
-        // axes rotated 90 deg from FTC (Pedro +X = FTC +Y, Pedro +Y = FTC -X).
-        // So: pedroX = ftcY + 72,  pedroY = -ftcX + 72.
         double ftcX = botpose.getPosition().toUnit(DistanceUnit.INCH).x;
         double ftcY = botpose.getPosition().toUnit(DistanceUnit.INCH).y;
         double pedroX = ftcY + 72.0;
         double pedroY = -ftcX + 72.0;
 
-        // Log before filters
-        telemetry.addData("LL Pedro X", pedroX);
-        telemetry.addData("LL Pedro Y", pedroY);
-        telemetry.addData("Pedro X", robotX);
-        telemetry.addData("Pedro Y", robotY);
-        telemetry.addData("Tags Seen", fiducials.size());
-        telemetry.addData("LL Raw X", botpose.getPosition().x);
-        telemetry.addData("LL Raw Y ", botpose.getPosition().y);
-        telemetry.addData("LL Yaw sent", LimelightHeading.pedroHeadingToLimelightDeg(robotHeading));
-        telemetry.addData("RAW X m", botpose.getPosition().x);
-        telemetry.addData("RAW Y m", botpose.getPosition().y);
-        telemetry.addData("RAW Z m", botpose.getPosition().z);
-        telemetry.addData("RAW Yaw", botpose.getOrientation().getYaw(AngleUnit.DEGREES));
-
-
-        // Distance filter
         for (LLResultTypes.FiducialResult tag : fiducials) {
             Pose3D robotRelTag = tag.getRobotPoseTargetSpace();
-            if (robotRelTag == null) { telemetry.addData("LL Rejected", "Null tag pose"); return; }
+            if (robotRelTag == null) return;
             double tx = robotRelTag.getPosition().x;
             double ty = robotRelTag.getPosition().y;
             double tz = robotRelTag.getPosition().z;
-            if (Math.sqrt(tx*tx + ty*ty + tz*tz) > MAX_TAG_DISTANCE_M) {
-                telemetry.addData("LL Rejected", "Tag too far");
-                return;
-            }
+            if (Math.sqrt(tx*tx + ty*ty + tz*tz) > MAX_TAG_DISTANCE_M) return;
         }
 
-        // Jump filter
         double jumpDist = Math.hypot(pedroX - robotX, pedroY - robotY);
-        telemetry.addData("LL Jump Dist", jumpDist);
-        if (jumpDist > MAX_POSE_JUMP_INCHES) {
-            telemetry.addData("LL Rejected", "Jump too large: " + jumpDist);
-            return;
-        } else {
+        if (jumpDist > MAX_POSE_JUMP_INCHES) return;
 
-        telemetry.addData("LL Status", "ACCEPTED");
+        // All filters passed
+        limelightHasValidRead = true;
 
-         follower.setPose(new Pose(pedroX, pedroY, robotHeading));
-            }
+        // Store the valid pose for use if button is pressed
+        lastValidPedroX = pedroX;
+        lastValidPedroY = pedroY;
+    }
+
+    private void applyLimelightPose() {
+        if (!limelightHasValidRead) return;
+        follower.setPose(new Pose(lastValidPedroX, lastValidPedroY, robotHeading));
+        relocalized = true;
     }
 
     public static void updateModels() {
@@ -283,6 +256,13 @@ public class servo extends OpMode {
     private Follower follower;
     public static Pose startingPose;
     private TelemetryManager telemetryM;
+    private boolean aLastPressed = false;
+    private ElapsedTime feedbackTimer = new ElapsedTime();
+    private static final double FEEDBACK_DURATION_S = 2.0;
+    private boolean showingFeedback = false;
+    private boolean limelightHasValidRead = false;
+    private boolean lastLimelightHasValidRead = false;
+
 
 
     @Override
@@ -300,9 +280,20 @@ public class servo extends OpMode {
         flywheel = new DualPidMotor (hardwareMap, "bottomflywheel", "topflywheel");
         turret = new Turret(hardwareMap, true);
 
+        prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
+
+        solidGreen.setBrightness(100);
+        solidGreen.setStartIndex(0);
+        solidGreen.setStopIndex(24);
+
+        solidPink.setBrightness(100);
+        solidPink.setStartIndex(0);
+        solidPink.setStopIndex(24);
+
+        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose == null ? new Pose(72,24,(Math.toRadians(90))) : startingPose);
+        follower.setStartingPose(startingPose == null ? new Pose(72,72,(Math.toRadians(90))) : startingPose);
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
@@ -313,7 +304,7 @@ public class servo extends OpMode {
         // compute a botpose with the default yaw=0 and we'd see a 180-deg
         // mirrored position error on the very first reading.
         limelight.updateRobotOrientation(
-                LimelightHeading.pedroHeadingToLimelightDeg(follower.getPose().getHeading()));
+                LimelightHeading.pedroHeadingToLimelightDeg(Math.toDegrees(follower.getHeading())));
 
         rbstop.setPosition(0);
         rhoodtilt.setPosition(MIN_TILT);
@@ -332,13 +323,41 @@ public class servo extends OpMode {
     public void start(){
         double limelightYaw = LimelightHeading.pedroHeadingToLimelightDeg(follower.getPose().getHeading());
         limelight.updateRobotOrientation(limelightYaw);
+        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
     }
 
     @Override
     public void loop() {
         follower.update();
-        updatePoseFromLimelight();
         updatePoseFromPedro();
+        checkLimelight();
+
+        if (limelightHasValidRead != lastLimelightHasValidRead) {
+            if (limelightHasValidRead) {
+                prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidGreen);
+            } else {
+                prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
+            }
+            lastLimelightHasValidRead = limelightHasValidRead;
+        }
+
+
+// Button press applies pose and rumbles only if valid
+        boolean aPressed = gamepad2.a;
+        if (aPressed && !aLastPressed) {
+            applyLimelightPose();
+            if (relocalized) {
+                gamepad1.rumble(1.0, 1.0, 300);
+            }
+        }
+        aLastPressed = aPressed;
+
+// Return to pink only after a successful relocalization times out
+        if (showingFeedback && feedbackTimer.seconds() > FEEDBACK_DURATION_S) {
+            prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
+            showingFeedback = false;
+        }
+
         flywheel.setVelocity(targetFlywheelRPM);
         telemetryM.update();
 
@@ -389,7 +408,9 @@ public class servo extends OpMode {
             rhoodtilt.setPosition(0);
             rhoodtilt.setPosition(0);
             intake.setVelocity((145.1*intakeIntakingTargetRPM)/60);
-        } else{
+        } else if (gamepad2.x){
+            intake.setPower(-1);
+        }else{
             intake.setVelocity(0);
             rbstop.setPosition(0);
             rhoodtilt.setPosition(targetHoodTilt);
@@ -436,7 +457,8 @@ public class servo extends OpMode {
         telemetry.addData("Loop Time (ms)", dt * 1000);
         telemetry.addData("Pedropathing X", robotX);
         telemetry.addData("Pedropathing Y", robotY);
-        telemetry.addData("Pedro Heading", Math.toDegrees(robotHeading));
+        telemetry.addData("Pedro Heading Deg", Math.toDegrees(robotHeading));
+        telemetry.addData("LL Yaw Sent", LimelightHeading.pedroHeadingToLimelightDeg(robotHeading));
 
         telemetry.update();
 
