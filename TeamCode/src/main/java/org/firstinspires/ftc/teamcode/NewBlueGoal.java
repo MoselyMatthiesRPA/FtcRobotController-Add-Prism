@@ -42,9 +42,9 @@ import java.util.function.Supplier;
 
 
 @Configurable
-@TeleOp(name = "turret test", group = "Competition")
+@TeleOp(name = "BlueOp", group = "Competition")
 
-public class servo extends OpMode {
+public class NewBlueGoal extends OpMode {
 
     // Robot pose (updated from Pedro)
     private double robotX = 0;
@@ -59,7 +59,7 @@ public class servo extends OpMode {
     GoBildaPrismDriver prism;
     PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
     PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
-    PrismAnimations.Solid solidRed = new PrismAnimations.Solid(Color.RED);
+    PrismAnimations.Solid solidBlue = new PrismAnimations.Solid(Color.RED);
 
     public double targetAngle;
     public double turretAngle;
@@ -80,7 +80,7 @@ public class servo extends OpMode {
     private static final double MIN_RPM = 0.0;
     private static final double MAX_RPM = 5800.0;
 
-    private static double MAX_TILT =  0.65;
+    private static double MAX_TILT =  0.7;
     private static final double MIN_TILT = 0.02;
 
     private static final double INCHES_PER_METER = 39.3701;
@@ -95,12 +95,12 @@ public class servo extends OpMode {
     // Linear correction: corrected = A*raw + B, fit to (RAW_AT_1M -> TRUE_1M) and (RAW_AT_2M -> TRUE_2M)
     private static final double DIST_A = (TRUE_2M_IN - TRUE_1M_IN) / (RAW_AT_2M_IN - RAW_AT_1M_IN);
     private static final double DIST_B = TRUE_1M_IN - (DIST_A * RAW_AT_1M_IN);
-    public static double RPM_AT_1M = 2125;
-    public static double RPM_AT_2M = 2500;
-    public static double RPM_AT_FAR = 3000;
+    public static double RPM_AT_1M = 2150;
+    public static double RPM_AT_2M = 2550;
+    public static double RPM_AT_FAR = 3075;
     public static double TILT_AT_FAR = 0.7;
-    public static double TILT_AT_1M = .25;
-    public static double TILT_AT_2M = .6;
+    public static double TILT_AT_1M = .4;
+    public static double TILT_AT_2M = .7;
     public static double RPM_M, RPM_C, TILT_M, TILT_C;
     long lastTagTime = 0;
     public static double TAG_TIMEOUT_MS = 1000;
@@ -109,14 +109,14 @@ public class servo extends OpMode {
     public double lastGoodHoodTilt = 0;
     double error;
     public double baseTarget = 0;
-    public static double targetTurretangle = 2; // target angle between the turret and the target in degrees
+    public static double targetTurretangle = 0; // target angle between the turret and the target in degrees
     public double usedRPM;
     public double usedTILT;
     public static double intakeIntakingTargetRPM = 900;
     public static double intakeShootingTargetRPM = 600;
     public double intakingRPM;
-    public static double intakeFarRPM = 250;
-    public static double intakeCloseRPM = 500;
+    public static double intakeFarRPM = 750;
+    public static double intakeCloseRPM = 900;
     public static double stopperDown = 0.13;
     public static double maxchangescaler = 10;
     public double lastGoodIntakeRPM;
@@ -127,11 +127,11 @@ public class servo extends OpMode {
     public static double turretAcceptableError = 0.5;
     ElapsedTime loopTimer = new ElapsedTime();
     public static double MAX_TAG_AMBIGUITY = 0.7;
-    public static double MAX_TAG_DISTANCE_M = 1.5;
+    public static double MAX_TAG_DISTANCE_M = 2.5;
     // Tune this: minimum displacement (inches) to accept a vision update
 // Prevents jitter when the robot is stationary
     public static double MIN_POSE_JUMP_INCHES = 0.5;
-    public static double MAX_POSE_JUMP_INCHES = 24.0; // reject wild outliers
+    public static double MAX_POSE_JUMP_INCHES = 40; // reject wild outliers
     public static double LL_HEADING_OFFSET = 90.0; // degrees — tune in Step 2
     // Reject LL frames captured before the most recent updateRobotOrientation
     // had time to take effect; otherwise MT2 may return a pose solved with a
@@ -278,7 +278,7 @@ public class servo extends OpMode {
         rhoodtilt = hardwareMap.get(Servo.class, "rhoodtilt");
         rhoodtilt.setDirection(Servo.Direction.REVERSE);
         flywheel = new DualPidMotor (hardwareMap, "bottomflywheel", "topflywheel");
-        turret = new Turret(hardwareMap, true);
+        turret = new Turret(hardwareMap, false);
 
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
 
@@ -290,10 +290,17 @@ public class servo extends OpMode {
         solidPink.setStartIndex(0);
         solidPink.setStopIndex(24);
 
+        solidBlue.setBrightness(100);
+        solidBlue.setStartIndex(0);
+        solidBlue.setStopIndex(24);
+
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
 
+        Pose initialPose = (RobotState.savedPose != null)
+                ? RobotState.savedPose
+                : new Pose(72, 72, Math.toRadians(90)); // fallback if no auto ran
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose == null ? new Pose(72,72,(Math.toRadians(90))) : startingPose);
+        follower.setStartingPose(initialPose);
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
@@ -347,7 +354,7 @@ public class servo extends OpMode {
         if (aPressed && !aLastPressed) {
             applyLimelightPose();
             if (relocalized) {
-                gamepad1.rumble(1.0, 1.0, 300);
+                gamepad2.rumble(1.0, 1.0, 300);
             }
         }
         aLastPressed = aPressed;
@@ -388,28 +395,30 @@ public class servo extends OpMode {
         turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
 
 
-            if (turretjoystick) {
-                // Manual joystick control
-                baseTarget = Math.toDegrees(Math.atan2(cx, cy));
-            } else {
-                // Odometry-based targeting
-                baseTarget = (calculateTurretAngleFromOdometry());
+        if (turretjoystick) {
+            // Manual joystick control
+            baseTarget = Math.toDegrees(Math.atan2(cx, cy));
+        } else {
+            // Odometry-based targeting
+            baseTarget = (calculateTurretAngleFromOdometry());
 
-                // Calculate distance for your existing shooter calculations
-                distanceInches = calculateDistanceToGoal();
+            // Calculate distance for your existing shooter calculations
+            distanceInches = calculateDistanceToGoal();
 
-            }
-            lastBaseTarget = baseTarget;
+        }
+        lastBaseTarget = baseTarget;
 
         if (gamepad2.right_trigger > 0.1){
             rbstop.setPosition(0.3);
             intake.setVelocity((145.1*intakingRPM)/60);
         } else if (gamepad2.left_trigger > 0.1 && gamepad2.right_trigger < 0.1){
             rhoodtilt.setPosition(0);
-            rhoodtilt.setPosition(0);
+            rbstop.setPosition(0);
             intake.setVelocity((145.1*intakeIntakingTargetRPM)/60);
         } else if (gamepad2.x){
             intake.setPower(-1);
+            rhoodtilt.setPosition(0);
+            rbstop.setPosition(0.3);
         }else{
             intake.setVelocity(0);
             rbstop.setPosition(0);

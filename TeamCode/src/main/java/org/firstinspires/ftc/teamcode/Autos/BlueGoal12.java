@@ -16,9 +16,12 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.DualPidMotor;
+import org.firstinspires.ftc.teamcode.NewBlueGoal;
+import org.firstinspires.ftc.teamcode.NewRedGoal;
 import org.firstinspires.ftc.teamcode.Prism.Color;
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
+import org.firstinspires.ftc.teamcode.RobotState;
 import org.firstinspires.ftc.teamcode.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -40,16 +43,15 @@ public class BlueGoal12 extends OpMode {
     public static double shootTime = 1200;
     public static double waitTime = 1600;
     public static double classifierTime = 1400;
-    public static double intakeShootRPM = 1100;
+    public static double intakeShootRPM = 900;
     public static double intakingRPM = 1100;
-    public static double stopperDown = 0.16;
-    public static double stopperUp = 0;
-    public static double hoodUp = 0.34;
+    public static double stopperDown = 0;
+    public static double stopperUp = 0.3;
+    public static double hoodUp = 0.53;
     public static double hoodDown = 0.03;
-    boolean cameragood;
     public double turretTarget = 2;
     public static double targetoffset = 2;
-    public static double flywheelRPM = 2380;
+    public static double flywheelRPM = 2275;
     boolean turretZero = false;
 
 
@@ -58,6 +60,60 @@ public class BlueGoal12 extends OpMode {
     PrismAnimations.Solid solidPink = new PrismAnimations.Solid(Color.PINK);
     PrismAnimations.Solid solidGreen = new PrismAnimations.Solid(Color.GREEN);
     PathState pathState;
+    private double robotX = 0;
+    private double robotY = 0;
+    public static double targetTurretangle = 0;
+    private double robotHeading;
+    double baseTarget = 0;
+
+    private double calculateTurretAngleFromOdometry() {
+        // Get vector from robot to goal (field coordinates)
+        double deltaX = FieldPositions.targetGoalX - robotX;
+        double deltaY = FieldPositions.targetGoalY - robotY;
+
+        // Calculate field-centric angle to goal (in radians)
+        double fieldCentricAngle = Math.atan2(deltaY, deltaX);
+
+        // Convert to robot-centric by subtracting robot's heading
+        double robotCentricAngle = -(fieldCentricAngle - robotHeading);
+
+        // Convert to degrees
+        double angleDegrees = Math.toDegrees(robotCentricAngle);
+
+        // Normalize to [-180, 180] range
+        while (angleDegrees > 180) angleDegrees -= 360;
+        while (angleDegrees < -180) angleDegrees += 360;
+
+        return angleDegrees+targetTurretangle;
+    }
+    public static class FieldPositions {
+        // Define goal positions in inches (Pedro's coordinate system)
+        // Adjust these based on your field's coordinate system
+        public static final double RED_GOAL_X = 130.3727;
+        public static final double RED_GOAL_Y = 127.6425;
+
+        public static final double BLUE_GOAL_X = 13.6273;
+        public static final double BLUE_GOAL_Y = 127.6425;
+
+        // Set based on alliance
+        public static double targetGoalX = BLUE_GOAL_X;
+        public static double targetGoalY = BLUE_GOAL_Y;
+    }
+    private double calculateDistanceToGoal() {
+        // Get vector from robot to goal
+        double deltaX = NewRedGoal.FieldPositions.targetGoalX - robotX;
+        double deltaY = NewRedGoal.FieldPositions.targetGoalY - robotY;
+
+        // Pythagorean theorem
+        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+    private void updatePoseFromPedro() {
+        Pose currentPose = follower.getPose();
+        robotX = currentPose.getX(); // Left is Positive
+        robotY = currentPose.getY(); // Forward is Positive
+        robotHeading = currentPose.getHeading(); // In Radians
+    }
+
     public enum PathState{
         START,
         DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS,
@@ -79,17 +135,17 @@ public class BlueGoal12 extends OpMode {
         LEAVE
     }
 
-    private final Pose startPose = new Pose(20, 124, Math.toRadians(234));
+    private final Pose startPose = new Pose(19, 125, Math.toRadians(234));
     private final Pose closeZoneShootPose = new Pose (45, 100, Math.toRadians(180));
     private final Pose closeLoadStartPose = new Pose (49, 83.5, Math.toRadians(180));
-    private final Pose closeLoadEndPose = new Pose (17, 83.5, Math.toRadians(180));
+    private final Pose closeLoadEndPose = new Pose (16.5, 83.5, Math.toRadians(180));
     private final Pose middleLoadStartPose = new Pose (48, 58, Math.toRadians(180));
     private final Pose middleLoadEndPose = new Pose (11, 58, Math.toRadians(180));
     private final Pose farLoadStartPose = new Pose (48, 35, Math.toRadians(180));
     private final Pose farLoadControlPose = new Pose (44, 55, Math.toRadians(180));
     private final Pose farLoadEndPose = new Pose (11, 35, Math.toRadians(180));
     private final Pose classifierSetup = new Pose (24, 65, Math.toRadians(170));
-    private final Pose classifierEmpty = new Pose (18.75, 71.5, Math.toRadians(170));
+    private final Pose classifierEmpty = new Pose (16, 71.5, Math.toRadians(170));
     private final Pose leavePose = new Pose (34,88,Math.toRadians(270));
 
     private PathChain CloseStartDriveCloseShoot, CloseShootDriveCloseLoad, CloseLoad, DriveCloseLoadCloseShoot, DriveCloseShootMiddleLoad, MiddleLoad, DriveMiddleLoadClassifierSetup, ClassifierEmpty, DriveClassifierEmptyCloseShoot, DriveCloseShootFarLoad, FarLoad, DriveFarLoadCloseShoot, FarShootLeave;
@@ -150,7 +206,7 @@ public class BlueGoal12 extends OpMode {
     public void statePathUpdate(){
         switch(pathState){
             case START:
-                follower.followPath(CloseStartDriveCloseShoot, 0.9, true);
+                follower.followPath(CloseStartDriveCloseShoot, 1, true);
                 flywheel.setVelocity(flywheelRPM);
                 rhoodtilt.setPosition(hoodUp);
                 stateTimer.reset();
@@ -158,10 +214,11 @@ public class BlueGoal12 extends OpMode {
                 break;
 
             case DRIVE_CLOSESTARTPOS_CLOSESHOOTPOS:
-//                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
-                if (!follower.isBusy()){
+                    if (!follower.isBusy()) {
                     if (stateTimer.milliseconds() > waitTime) {
+                        prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidGreen);
                         stateTimer.reset();
+
                         setPathState(PathState.CLOSESHOOT1);
                     }
                 }
@@ -174,9 +231,6 @@ public class BlueGoal12 extends OpMode {
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
-                    flywheel.setVelocity(0);
                     follower.followPath(CloseShootDriveCloseLoad);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_CLOSESHOOTPOS_CLOSELOAD);
@@ -184,7 +238,7 @@ public class BlueGoal12 extends OpMode {
                 break;
             case DRIVE_CLOSESHOOTPOS_CLOSELOAD:
                 if (!follower.isBusy()){
-                    follower.followPath(CloseLoad, 0.5, true);
+                    follower.followPath(CloseLoad, 1, false);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.CLOSELOAD);
@@ -193,17 +247,14 @@ public class BlueGoal12 extends OpMode {
             case CLOSELOAD:
                 if (!follower.isBusy()){
                     intake.setVelocity(0);
-                    follower.followPath(DriveCloseLoadCloseShoot, 1, false);
+                    follower.followPath(DriveCloseLoadCloseShoot, 7, false);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_CLOSELOADENDPOS_CLOSESHOOTPOS);
                 }
                 break;
             case DRIVE_CLOSELOADENDPOS_CLOSESHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-                turretZero = false;
-//                turret.setTargetAngle(turretFallBackAngle);
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
-                    stateTimer.reset();
+                if (!follower.isBusy()){
+                stateTimer.reset();
                     setPathState(PathState.CLOSESHOOT2);
                 }
                 break;
@@ -214,9 +265,6 @@ public class BlueGoal12 extends OpMode {
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
-                    flywheel.setVelocity(0);
                     follower.followPath(DriveCloseShootMiddleLoad, true);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_CLOSESHOOTPOS_MIDDLELOAD);
@@ -224,7 +272,7 @@ public class BlueGoal12 extends OpMode {
                 break;
             case DRIVE_CLOSESHOOTPOS_MIDDLELOAD:
                 if (!follower.isBusy()){
-                    follower.followPath(MiddleLoad, 0.5, true);
+                    follower.followPath(MiddleLoad, 0.8, true);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.MIDDLELOAD);
@@ -233,14 +281,14 @@ public class BlueGoal12 extends OpMode {
             case MIDDLELOAD:
                 if (!follower.isBusy()){
                     intake.setVelocity(0);
-                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.8, false);
+                    follower.followPath(DriveMiddleLoadClassifierSetup, 0.8, true);
                     stateTimer.reset();
                     setPathState(PathState.CLASSIFIERSETUP);
                 }
                 break;
             case CLASSIFIERSETUP:
-                if (follower.atPose(classifierSetup, 1, 1, 0.5)){
-                    follower.followPath(ClassifierEmpty, 0.7, true);
+                if (!follower.isBusy()){
+                    follower.followPath(ClassifierEmpty, 1, true);
                     stateTimer.reset();
                     setPathState(PathState.CLASSIFIEREMPTY);
                 }
@@ -255,10 +303,7 @@ public class BlueGoal12 extends OpMode {
                 }
                 break;
             case DRIVE_CLASSIFIEREMPTYPOS_FARSHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-//                turret.setTargetAngle(turretFallBackAngle);
-                turretZero = false;
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()) {
                     stateTimer.reset();
                     setPathState(PathState.CLOSESHOOT3);
                 }
@@ -270,9 +315,6 @@ public class BlueGoal12 extends OpMode {
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
-                    flywheel.setVelocity(0);
                     follower.followPath(DriveCloseShootFarLoad, true);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_CLOSESHOOTPOS_FARLOADSTARTPOS);
@@ -280,7 +322,7 @@ public class BlueGoal12 extends OpMode {
                 break;
             case DRIVE_CLOSESHOOTPOS_FARLOADSTARTPOS:
                 if (!follower.isBusy()){
-                    follower.followPath(FarLoad, 0.5,true);
+                    follower.followPath(FarLoad, 1,true);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.FARLOAD);
@@ -295,10 +337,7 @@ public class BlueGoal12 extends OpMode {
                 }
                 break;
             case DRIVE_FARLOADENDPOS_CLOSESHOOTPOS:
-                flywheel.setVelocity(flywheelRPM);
-//                turret.setTargetAngle(turretFallBackAngle);
-                turretZero = false;
-                if (follower.atPose(closeZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()) {
                     stateTimer.reset();
                     setPathState(PathState.CLOSESHOOT4);
                 }
@@ -310,9 +349,6 @@ public class BlueGoal12 extends OpMode {
                 } else if (stateTimer.milliseconds() > shootTime){
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
-//                    turret.setTargetAngle(0);
-                    turretZero = true;
-                    flywheel.setVelocity(0);
                     follower.followPath(FarShootLeave, true);
                     stateTimer.reset();
                     setPathState(PathState.LEAVE);
@@ -320,6 +356,7 @@ public class BlueGoal12 extends OpMode {
                 break;
             case LEAVE:
                 if (!follower.isBusy()){
+                    NewBlueGoal.startingPose = follower.getPose();
                 }
             default:
                 break;
@@ -340,31 +377,29 @@ public class BlueGoal12 extends OpMode {
         turret = new Turret(hardwareMap, true);
         rbstop = hardwareMap.get(Servo.class, "rbstop");
         rhoodtilt = hardwareMap.get(Servo.class, "rhoodtilt");
-        flywheel = new DualPidMotor (hardwareMap, "topflywheel", "bottomflywheel");
-        intake.setDirection(DcMotorSimple.Direction.REVERSE);
+        flywheel = new DualPidMotor (hardwareMap, "bottomflywheel", "topflywheel");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
-        limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
-        limelight.pipelineSwitch(1); // Switch to pipeline number 1
-
-        rbstop.setPosition(stopperUp);
-        rhoodtilt.setPosition(hoodDown);
 
         solidBlue.setBrightness(100);
         solidBlue.setStartIndex(0);
-        solidBlue.setStopIndex(36);
+        solidBlue.setStopIndex(24);
 
         solidPink.setBrightness(100);
         solidPink.setStartIndex(0);
-        solidPink.setStopIndex(36);
+        solidPink.setStopIndex(24);
 
         rainbow.setNumberOfSnakes(3);
         rainbow.setSnakeLength(3);
         rainbow.setSpacingBetween(2);
         rainbow.setSpeed(0.6f);
 
+        rbstop.setPosition(0.3);
+        rhoodtilt.setPosition(0);
+
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidBlue);
         follower.setStartingPose(startPose);
+        robotHeading = follower.getHeading();
         buildPaths();
     }
 
@@ -373,32 +408,23 @@ public class BlueGoal12 extends OpMode {
         rbstop.setPosition(stopperDown);
         turret.setTargetAngle(turretFallBackAngle);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
+        flywheel.setVelocity(flywheelRPM);
         stateTimer.reset();
     }
 
     @Override
     public void loop() {
-        dt = loopTimer.seconds();
-        turret.update(dt);
         flywheel.Update();
         loopTimer.reset();
         follower.update();
+        updatePoseFromPedro();
         statePathUpdate();
+        RobotState.savedPose = follower.getPose(); // save every loop
 
-        double turretAngle = turret.getCurrentAngle();
-        double targetTurretangle = turret.getTargetAngle();
-        LLResult result = limelight.getLatestResult();
-//        if (turretZero) {
-//            if (result != null && result.isValid()) {
-//                double lastGoodtTx = result.getTx(); // angle from tag camera-relative(from limelight)
-//                turretTarget = turretAngle + targetTurretangle - lastGoodtTx;
-//            } else {
-//                turretTarget = turretFallBackAngle;
-//            }
-//        } else {
-//            turretTarget = 0;
-//        }
-        turretTarget = turretFallBackAngle;
+        dt = loopTimer.seconds();
+        baseTarget = (calculateTurretAngleFromOdometry());
+        turret.setTargetAngle(baseTarget);
+        turret.update(dt);
     }
 
 
@@ -406,6 +432,7 @@ public class BlueGoal12 extends OpMode {
     public void stop() {
         prism.clearAllAnimations();
         prism.updateAllAnimations();
+        RobotState.savedPose = follower.getPose();
     }
 
 }
