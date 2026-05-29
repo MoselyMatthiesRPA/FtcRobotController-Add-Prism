@@ -16,9 +16,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.DualPidMotor;
+import org.firstinspires.ftc.teamcode.NewRedGoal;
 import org.firstinspires.ftc.teamcode.Prism.Color;
 import org.firstinspires.ftc.teamcode.Prism.GoBildaPrismDriver;
 import org.firstinspires.ftc.teamcode.Prism.PrismAnimations;
+import org.firstinspires.ftc.teamcode.RobotState;
 import org.firstinspires.ftc.teamcode.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -42,14 +44,58 @@ public class BlueFar6 extends OpMode {
     public static double classifierTime = 2000;
     public static double intakeShootRPM = 800;
     public static double intakingRPM = 1100;
-    public static double stopperDown = 0.16;
-    public static double stopperUp = 0;
-    public static double hoodUp = 0.75;
+    public static double stopperDown = 0;
+    public static double stopperUp = 0.3;
+    public static double hoodUp = 0.7;
     public static double hoodDown = 0.03;
     boolean cameragood;
     public double turretTarget = 2;
     public static double targetoffset = 2;
+    private double robotX = 0;
+    private double robotY = 0;
+    public static double targetTurretangle = 0;
+    private double robotHeading;
+    double baseTarget = 0;
+    public static double flywheelRPM = 3075;
+    private double calculateTurretAngleFromOdometry() {
+        // Get vector from robot to goal (field coordinates)
+        double deltaX = FieldPositions.targetGoalX - robotX;
+        double deltaY = FieldPositions.targetGoalY - robotY;
 
+        // Calculate field-centric angle to goal (in radians)
+        double fieldCentricAngle = Math.atan2(deltaY, deltaX);
+
+        // Convert to robot-centric by subtracting robot's heading
+        double robotCentricAngle = -(fieldCentricAngle - robotHeading);
+
+        // Convert to degrees
+        double angleDegrees = Math.toDegrees(robotCentricAngle);
+
+        // Normalize to [-180, 180] range
+        while (angleDegrees > 180) angleDegrees -= 360;
+        while (angleDegrees < -180) angleDegrees += 360;
+
+        return angleDegrees+targetTurretangle;
+    }
+    public static class FieldPositions {
+        // Define goal positions in inches (Pedro's coordinate system)
+        // Adjust these based on your field's coordinate system
+        public static final double RED_GOAL_X = 130.3727;
+        public static final double RED_GOAL_Y = 127.6425;
+
+        public static final double BLUE_GOAL_X = 13.6273;
+        public static final double BLUE_GOAL_Y = 127.6425;
+
+        // Set based on alliance
+        public static double targetGoalX = BLUE_GOAL_X;
+        public static double targetGoalY = BLUE_GOAL_Y;
+    }
+    private void updatePoseFromPedro() {
+        Pose currentPose = follower.getPose();
+        robotX = currentPose.getX(); // Left is Positive
+        robotY = currentPose.getY(); // Forward is Positive
+        robotHeading = currentPose.getHeading(); // In Radians
+    }
 
     PrismAnimations.RainbowSnakes rainbow = new PrismAnimations.RainbowSnakes();
     PrismAnimations.Solid solidBlue =new PrismAnimations.Solid(Color.BLUE);
@@ -73,15 +119,15 @@ public class BlueFar6 extends OpMode {
         LEAVE
     }
 
-    private final Pose startPose = new Pose(49, 7.2, Math.toRadians(180));
-    private final Pose farZoneShootPose = new Pose (58, 16, Math.toRadians(180));
+    private final Pose startPose = new Pose(49, 6.25, Math.toRadians(180));
+    private final Pose farZoneShootPose = new Pose (57, 15, Math.toRadians(180));
     private final Pose middleLoadStartPose = new Pose (48, 58, Math.toRadians(180));
     private final Pose middleLoadEndPose = new Pose (10, 58, Math.toRadians(180));
     private final Pose farLoadStartPose = new Pose (58, 35, Math.toRadians(180));
     private final Pose middleLoadControlPose = new Pose (48, 58, Math.toRadians(180));
     private final Pose farLoadEndPose = new Pose (10, 35, Math.toRadians(180));
     private final Pose classifierSetup = new Pose (24, 65, Math.toRadians(170));
-    private final Pose classifierEmpty = new Pose (17.75, 71.5, Math.toRadians(170));
+    private final Pose classifierEmpty = new Pose (16, 71.5, Math.toRadians(170));
     private final Pose farLeavePose = new Pose (24, 10, Math.toRadians(180));
 
     private PathChain FarStartDriveFarShoot, FarShootDriveMiddleLoad, MiddleLoad, DriveMiddleLoadClassifierSetup, ClassifierEmpty, DriveClassifierEmptyFarShoot, DriveFarShootFarLoad, FarLoad, DriveFarLoadFarShoot, FarShootLeave;
@@ -130,17 +176,14 @@ public class BlueFar6 extends OpMode {
     public void statePathUpdate(){
         switch(pathState){
             case START:
-                follower.followPath(FarStartDriveFarShoot, 0.7, true);
-                flywheel.setVelocity(3075);
+                follower.followPath(FarStartDriveFarShoot, 0.9, true);
                 rhoodtilt.setPosition(hoodUp);
                 stateTimer.reset();
                 setPathState(PathState.DRIVE_FARSTARTPOS_FARSHOOTPOS);
                 break;
 
             case DRIVE_FARSTARTPOS_FARSHOOTPOS:
-                turret.setTargetAngle(turretTarget);
-                if (follower.atPose(farZoneShootPose, 2,2, 1)) {
-//                if (!follower.isBusy()){
+                if (!follower.isBusy()){
                     if (stateTimer.milliseconds() > waitTime) {
                         stateTimer.reset();
                         setPathState(PathState.FARSHOOT1);
@@ -156,18 +199,15 @@ public class BlueFar6 extends OpMode {
                     intake.setVelocity(0);
                     rbstop.setPosition(stopperDown);
                     rhoodtilt.setPosition(hoodDown);
-                    turret.setTargetAngle(0);
-                    flywheel.setVelocity(0);
                     follower.followPath(DriveFarShootFarLoad);
                     stateTimer.reset();
                     setPathState(PathState.DRIVE_FARSHOOTPOS_FARLOADSTARTPOS);
                 }
 
                 break;
-
             case DRIVE_FARSHOOTPOS_FARLOADSTARTPOS:
                 if (!follower.isBusy()){
-                    follower.followPath(FarLoad, 0.5, true);
+                    follower.followPath(FarLoad, 1, false);
                     intake.setVelocity((intakingRPM * 145.1)/60);
                     stateTimer.reset();
                     setPathState(PathState.FARLOAD);
@@ -182,10 +222,8 @@ public class BlueFar6 extends OpMode {
                 }
                 break;
             case DRIVE_FARLOADENDPOS_FARSHOOTPOS:
-                flywheel.setVelocity(3075);
                 rhoodtilt.setPosition(hoodUp);
-                turret.setTargetAngle(turretFallBackAngle);
-                if (follower.atPose(farZoneShootPose, 1,1, 0.05)) {
+                if (!follower.isBusy()){
                     stateTimer.reset();
                     setPathState(PathState.FARSHOOT3);
                 }
@@ -198,8 +236,6 @@ public class BlueFar6 extends OpMode {
                     intake.setVelocity(0);
                     rhoodtilt.setPosition(0);
                     rbstop.setPosition(stopperDown);
-                    turret.setTargetAngle(0);
-                    flywheel.setVelocity(0);
                     follower.followPath(FarShootLeave, true);
                     stateTimer.reset();
                     setPathState(PathState.LEAVE);
@@ -233,7 +269,7 @@ public class BlueFar6 extends OpMode {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
-        limelight.pipelineSwitch(1); // Switch to pipeline number 1
+        limelight.pipelineSwitch(0); // Switch to pipeline number 1
 
         rbstop.setPosition(stopperUp);
         rhoodtilt.setPosition(hoodDown);
@@ -261,29 +297,23 @@ public class BlueFar6 extends OpMode {
         rbstop.setPosition(stopperDown);
         turret.setTargetAngle(turretFallBackAngle);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
+        flywheel.setVelocity(flywheelRPM);
         stateTimer.reset();
     }
 
     @Override
     public void loop() {
-        dt = loopTimer.seconds();
-        turret.update(dt);
         flywheel.Update();
         loopTimer.reset();
         follower.update();
+        updatePoseFromPedro();
         statePathUpdate();
+        RobotState.savedPose = follower.getPose(); // save every loop
 
-//        double turretAngle = turret.getCurrentAngle();
-//        double targetTurretangle = turret.getTargetAngle();
-//        LLResult result = limelight.getLatestResult();
-//        if (result != null && result.isValid()) {
-//            double lastGoodtTx = result.getTx(); // angle from tag camera-relative(from limelight)
-//            turretTarget = turretAngle + targetTurretangle + targetoffset - lastGoodtTx; // Calculates the angle the turret would be at if it were perfectly aligned
-//
-//        } else {
-//            turretTarget = turretFallBackAngle;
-//        }
-        turretTarget = turretFallBackAngle;
+        dt = loopTimer.seconds();
+        baseTarget = (calculateTurretAngleFromOdometry());
+        turret.setTargetAngle(baseTarget);
+        turret.update(dt);
     }
 
 

@@ -394,9 +394,6 @@ public class BlueGoal12 extends OpMode {
         rainbow.setSpacingBetween(2);
         rainbow.setSpeed(0.6f);
 
-        rbstop.setPosition(0.3);
-        rhoodtilt.setPosition(0);
-
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidBlue);
         follower.setStartingPose(startPose);
         robotHeading = follower.getHeading();
@@ -406,7 +403,7 @@ public class BlueGoal12 extends OpMode {
     public void start() {
         setPathState(PathState.START);
         rbstop.setPosition(stopperDown);
-        turret.setTargetAngle(turretFallBackAngle);
+        rhoodtilt.setPosition(0);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
         flywheel.setVelocity(flywheelRPM);
         stateTimer.reset();

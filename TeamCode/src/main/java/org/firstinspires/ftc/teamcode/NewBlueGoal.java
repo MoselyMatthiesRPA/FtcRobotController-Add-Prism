@@ -394,6 +394,9 @@ public class NewBlueGoal extends OpMode {
 
         turretAngle = turret.getCurrentAngle(); // determines our Turret position in degrees from 0(0 is set at initiation, needs to be set exactly forwards or our limits wont work)
 
+        if (gamepad2.dpadUpWasPressed()){
+            follower.setHeading(Math.toRadians(90));
+        }
 
         if (turretjoystick) {
             // Manual joystick control

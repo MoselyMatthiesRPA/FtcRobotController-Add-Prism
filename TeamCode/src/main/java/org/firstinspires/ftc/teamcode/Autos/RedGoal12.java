@@ -99,14 +99,6 @@ public class RedGoal12 extends OpMode {
         public static double targetGoalX = RED_GOAL_X;
         public static double targetGoalY = RED_GOAL_Y;
     }
-    private double calculateDistanceToGoal() {
-        // Get vector from robot to goal
-        double deltaX = FieldPositions.targetGoalX - robotX;
-        double deltaY = FieldPositions.targetGoalY - robotY;
-
-        // Pythagorean theorem
-        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    }
     private void updatePoseFromPedro() {
         Pose currentPose = follower.getPose();
         robotX = currentPose.getX(); // Left is Positive
@@ -379,7 +371,7 @@ public class RedGoal12 extends OpMode {
         flywheel = new DualPidMotor (hardwareMap, "bottomflywheel", "topflywheel");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         prism = hardwareMap.get(GoBildaPrismDriver.class,"prism");
-
+        limelight.pipelineSwitch(0);
         solidRed.setBrightness(100);
         solidRed.setStartIndex(0);
         solidRed.setStopIndex(24);
@@ -393,9 +385,6 @@ public class RedGoal12 extends OpMode {
         rainbow.setSpacingBetween(2);
         rainbow.setSpeed(0.6f);
 
-        rbstop.setPosition(0.3);
-        rhoodtilt.setPosition(0);
-
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidRed);
         follower.setStartingPose(startPose);
         robotHeading = follower.getHeading();
@@ -405,7 +394,7 @@ public class RedGoal12 extends OpMode {
     public void start() {
         setPathState(PathState.START);
         rbstop.setPosition(stopperDown);
-        turret.setTargetAngle(turretFallBackAngle);
+        rhoodtilt.setPosition(0);
         prism.insertAndUpdateAnimation(GoBildaPrismDriver.LayerHeight.LAYER_0, solidPink);
         flywheel.setVelocity(flywheelRPM);
         stateTimer.reset();
@@ -425,7 +414,6 @@ public class RedGoal12 extends OpMode {
         turret.setTargetAngle(baseTarget);
         turret.update(dt);
     }
-
 
     @Override
     public void stop() {

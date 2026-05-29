@@ -143,7 +143,7 @@ public class NewRedGoal extends OpMode {
     // Tune this: minimum displacement (inches) to accept a vision update
 // Prevents jitter when the robot is stationary
     public static double MIN_POSE_JUMP_INCHES = 0.5;
-    public static double MAX_POSE_JUMP_INCHES = 40; // reject wild outliers
+    public static double MAX_POSE_JUMP_INCHES = 1000; // reject wild outliers
     public static double MAX_LL_STALENESS_MS = 100.0;
     private boolean relocalized = false;
     private double lastValidPedroX = 0;
@@ -386,6 +386,10 @@ public class NewRedGoal extends OpMode {
             targetFlywheelRPM = RPM_AT_FAR;
             targetHoodTilt = TILT_AT_FAR;
             intakingRPM = intakeFarRPM;
+        }
+
+        if (gamepad2.dpadUpWasPressed()){
+            follower.setHeading(Math.toRadians(90));
         }
 
         telemetryM.debug("position", follower.getPose());

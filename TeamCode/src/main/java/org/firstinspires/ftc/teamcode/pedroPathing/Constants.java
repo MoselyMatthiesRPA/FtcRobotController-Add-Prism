@@ -21,9 +21,9 @@ public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .forwardZeroPowerAcceleration(-28.129371909785974)
             .lateralZeroPowerAcceleration(-64.7896472749833)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0001, 0.01, 0.02))
-            .headingPIDFCoefficients(new PIDFCoefficients(1, 1, 0.001, 0.025))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01,0.0,0,0,0.02))
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0001, 0.01, 0.03))
+            .headingPIDFCoefficients(new PIDFCoefficients(1, 1, 0.001, 0.03))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01,0.0,0,0,0.03))
             .centripetalScaling(0.005)
             .mass(11);
 
